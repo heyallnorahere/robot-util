@@ -1,0 +1,10 @@
+{
+    "build": [
+        "libcurl4-openssl-dev",
+        "libgpiod-dev"
+    ],
+    "runtime": [
+        "libcurl4",
+        "libgpiod2"
+    ]
+}

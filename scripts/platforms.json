@@ -1,7 +1,7 @@
 {
     "linux": {
-        "Name": "linux-gnu",
-        "Architectures": {
+        "name": "linux-gnu",
+        "architectures": {
             "arm64": "aarch64",
             "amd64": "x86_64"
         }

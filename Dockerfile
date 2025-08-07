@@ -1,4 +1,4 @@
-ARG IMAGE=debian:latest
+ARG IMAGE=debian:bookworm
 FROM --platform=$BUILDPLATFORM ${IMAGE} AS build
 SHELL [ "/bin/bash", "-c" ]
 
@@ -19,6 +19,9 @@ RUN scripts/build.sh ${TARGETOS} ${TARGETARCH}
 FROM ${IMAGE} AS runtime
 SHELL [ "/bin/bash", "-c" ]
 WORKDIR /robot-util
+
+COPY scripts scripts
+RUN scripts/runtimeenv.sh
 
 COPY --from=build /robot-util/build ./build
 

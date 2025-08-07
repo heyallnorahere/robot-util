@@ -7,14 +7,14 @@ BUILDARCH=$3
 apt-get update
 apt-get install -y jq cmake build-essential
 
+SCRIPTDIR=$(realpath $(dirname $0))
 if [[ $TARGETARCH != $BUILDARCH ]]; then
-    SCRIPTDIR=$(realpath $(dirname $0))
     PLATFORMS_JSON="$SCRIPTDIR/platforms.json"
 
-    COMPILEROS_JSONPATH=".$OS.Name"
+    COMPILEROS_JSONPATH=".$OS.name"
     COMPILEROS=$(cat $PLATFORMS_JSON | jq -r $COMPILEROS_JSONPATH)
 
-    COMPILERARCH_JSONPATH=".$OS.Architectures.$TARGETARCH"
+    COMPILERARCH_JSONPATH=".$OS.architectures.$TARGETARCH"
     COMPILERARCH=$(cat $PLATFORMS_JSON | jq -r $COMPILERARCH_JSONPATH)
 
     COMPILERNAME=$COMPILERARCH-$COMPILEROS
@@ -24,4 +24,9 @@ if [[ $TARGETARCH != $BUILDARCH ]]; then
     apt-get update
 fi
 
-apt-get install -y libcurl4-openssl-dev:$TARGETARCH
+PACKAGES=$(cat $SCRIPTDIR/packages.json | jq -r ".build[]")
+for PACKAGE_NAME in $PACKAGES; do
+    PACKAGE_LIST="$PACKAGE_LIST $PACKAGE_NAME:$TARGETARCH"
+done
+
+apt-get install -y $PACKAGE_LIST
