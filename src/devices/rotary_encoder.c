@@ -9,7 +9,7 @@ struct rotary_encoder {
     gpio_chip_t* chip;
     struct rotary_encoder_pins pins;
 
-    int lastState;
+    int last_state;
 };
 
 rotary_encoder_t* rotary_encoder_open(gpio_chip_t* chip, const struct rotary_encoder_pins* pins) {
@@ -30,7 +30,7 @@ rotary_encoder_t* rotary_encoder_open(gpio_chip_t* chip, const struct rotary_enc
         return NULL;
     }
 
-    if (!gpio_get_digital(chip, 1, &encoder->pins.a, &encoder->lastState)) {
+    if (!gpio_get_digital(chip, 1, &encoder->pins.a, &encoder->last_state)) {
         free(encoder);
         return NULL;
     }
@@ -46,10 +46,10 @@ void rotary_encoder_close(rotary_encoder_t* encoder) {
     free(encoder);
 }
 
-int rotary_encoder_get_direction(int a, int b, int lastState) {
+int rotary_encoder_get_direction(int a, int b, int last_state) {
     // we want to make sure a is high
     // so that we dont get duplicate signals
-    if (a == lastState || !a) {
+    if (a == last_state || !a) {
         return 0;
     }
 
@@ -79,8 +79,8 @@ int rotary_encoder_get_motion(rotary_encoder_t* encoder, int* motion) {
     a = values[0];
     b = values[1];
 
-    *motion = rotary_encoder_get_direction(a, b, encoder->lastState);
-    encoder->lastState = a;
+    *motion = rotary_encoder_get_direction(a, b, encoder->last_state);
+    encoder->last_state = a;
 
     return 1;
 }

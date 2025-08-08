@@ -50,9 +50,9 @@ int main(int argc, const char** argv) {
         return 1;
     }
 
-    pins.a = 23;
-    pins.b = 24;
-    pins.sw = 25;
+    pins.a = 17;
+    pins.b = 27;
+    pins.sw = 22;
 
     encoder = rotary_encoder_open(chip, &pins);
     if (!encoder) {
