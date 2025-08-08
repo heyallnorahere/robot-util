@@ -16,7 +16,7 @@ rotary_encoder_t* rotary_encoder_open(gpio_chip_t* chip, const struct rotary_enc
     rotary_encoder_t* encoder;
     unsigned int a;
 
-    gpio_request_config_t config;
+    struct gpio_request_config config;
 
     encoder = (rotary_encoder_t*)malloc(sizeof(rotary_encoder_t));
     encoder->chip = chip;
@@ -67,10 +67,11 @@ int rotary_encoder_get_motion(rotary_encoder_t* encoder, int* motion) {
     int values[2];
     int a, b;
 
-    const unsigned int* pins;
+    unsigned int pins[2];
     int success;
 
-    pins = &encoder->pins.a;
+    pins[0] = encoder->pins.a;
+    pins[1] = encoder->pins.b;
 
     success = gpio_get_digital(encoder->chip, 2, pins, values);
     if (!success) {
@@ -86,13 +87,6 @@ int rotary_encoder_get_motion(rotary_encoder_t* encoder, int* motion) {
     return 1;
 }
 
-int rotary_encoder_get_pressed(rotary_encoder_t* encoder, int* pressed) {
-    unsigned int sw;
-    
-    sw = encoder->pins.sw;
-    return gpio_get_digital(encoder->chip, 1, &sw, pressed);
-}
-
 int rotary_encoder_get(rotary_encoder_t* encoder, int* pressed, int* motion) {
     int success;
 
@@ -103,7 +97,7 @@ int rotary_encoder_get(rotary_encoder_t* encoder, int* pressed, int* motion) {
     }
 
     if (pressed) {
-        success &= rotary_encoder_get_pressed(encoder, pressed);
+        success &= gpio_get_digital(encoder->chip, 1, &encoder->pins.sw, pressed);
     }
 
     return success;

@@ -1,8 +1,7 @@
 #ifndef ROTARY_ENCODER_H
 #define ROTARY_ENCODER_H
 
-// we pack this so that we can pass &a into gpio_get_digital
-struct __attribute__((packed)) rotary_encoder_pins {
+struct rotary_encoder_pins {
     unsigned int a, b;
     unsigned int sw;
 };
