@@ -14,9 +14,9 @@ typedef enum gpio_request_type {
     GPIO_REQUEST_EVENT_BOTH_EDGES,
 } gpio_request_type;
 
-typedef struct gpio_request_config {
+struct gpio_request_config {
     gpio_request_type type;
-} gpio_request_config_t;
+};
 
 // opens a gpio chip with a consistent consumer. copies strings.
 gpio_chip_t* gpio_chip_open(const char* device, const char* consumer);
@@ -27,7 +27,7 @@ void gpio_chip_close(gpio_chip_t* chip);
 // sets the request of a set of pins
 // return 1 on success, 0 on failure
 int gpio_set_pin_request(gpio_chip_t* chip, size_t pin_count, const unsigned int* pins,
-                         const gpio_request_config_t* config);
+                         const struct gpio_request_config* config);
 
 // sets digital state of a set of pins
 // returns 1 on success, 0 on failure

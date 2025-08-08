@@ -69,7 +69,7 @@ int gpio_get_lines(gpio_chip_t* chip, size_t pin_count, const unsigned int* pins
 }
 
 int gpio_set_pin_request(gpio_chip_t* chip, size_t pin_count, const unsigned int* pins,
-                         const gpio_request_config_t* config) {
+                         const struct gpio_request_config* config) {
     struct gpiod_line_request_config gpiod_config;
     struct gpiod_line_bulk lines;
 
@@ -129,6 +129,6 @@ int gpio_get_digital(gpio_chip_t* chip, size_t pin_count, const unsigned int* pi
         perror("gpiod_line_get_value_bulk");
         return 0;
     }
-    
+
     return 1;
 }

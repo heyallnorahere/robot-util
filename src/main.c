@@ -1,34 +1,68 @@
 #include <stdio.h>
 
 #include "gpio.h"
+#include "devices/rotary_encoder.h"
+
+gpio_chip_t* chip;
+rotary_encoder_t* encoder;
+
+int loop() {
+    int clicked, moved;
+    int pressed, motion;
+    int success;
+
+    const char* motion_type;
+
+    clicked = moved = 0;
+    while (!clicked || !moved) {
+        success = rotary_encoder_get(encoder, &pressed, &motion);
+        if (!success) {
+            return 1;
+        }
+
+        if (pressed && !clicked) {
+            printf("Clicked!\n");
+            clicked = 1;
+        }
+
+        if (motion != 0) {
+            if (motion > 0) {
+                motion_type = "clockwise";
+            } else {
+                motion_type = "counter-clockwise";
+            }
+
+            printf("Moved %s!\n", motion_type);
+            moved = 1;
+        }
+    }
+
+    return 0;
+}
 
 int main(int argc, const char** argv) {
-    gpio_chip_t* chip;
-    gpio_request_config_t config;
+    struct rotary_encoder_pins pins;
 
-    unsigned int pin;
-    int value;
+    int result;
 
     chip = gpio_chip_open("/dev/gpiochip0", "robot-util");
     if (!chip) {
         return 1;
     }
 
-    config.type = GPIO_REQUEST_DIRECTION_INPUT;
-    pin = 25;
+    pins.a = 23;
+    pins.b = 24;
+    pins.sw = 25;
 
-    if (!gpio_set_pin_request(chip, 1, &pin, &config)) {
-        gpio_chip_close(chip);
+    encoder = rotary_encoder_open(chip, &pins);
+    if (!encoder) {
         return 1;
     }
 
-    if (!gpio_get_digital(chip, 1, &pin, &value)) {
-        gpio_chip_close(chip);
-        return 1;
-    }
+    result = loop();
 
-    printf("Pin %u: %d\n", pin, value);
-
+    rotary_encoder_close(encoder);
     gpio_chip_close(chip);
-    return 0;
+
+    return result;
 }
