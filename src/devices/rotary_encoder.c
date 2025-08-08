@@ -92,6 +92,11 @@ int rotary_encoder_get_direction(const struct rotary_encoder_state* current,
         return 0;
     }
 
+    // we do not want the tail end of a frame to be caught as another signal
+    if ((last->a && !current->a) || (last->b && !current->a)) {
+        return 0;
+    }
+
     // clockwise, a rises before b
     // counter-clockwise, b rises before a
     if (current->a) {
