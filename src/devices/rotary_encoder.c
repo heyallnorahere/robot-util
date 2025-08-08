@@ -14,8 +14,6 @@ struct rotary_encoder {
 
 rotary_encoder_t* rotary_encoder_open(gpio_chip_t* chip, const struct rotary_encoder_pins* pins) {
     rotary_encoder_t* encoder;
-    unsigned int a;
-
     struct gpio_request_config config;
 
     encoder = (rotary_encoder_t*)malloc(sizeof(rotary_encoder_t));
@@ -32,8 +30,7 @@ rotary_encoder_t* rotary_encoder_open(gpio_chip_t* chip, const struct rotary_enc
         return NULL;
     }
 
-    a = pins->a;
-    if (!gpio_get_digital(chip, 1, &a, &encoder->lastState)) {
+    if (!gpio_get_digital(chip, 1, &encoder->pins.a, &encoder->lastState)) {
         free(encoder);
         return NULL;
     }
