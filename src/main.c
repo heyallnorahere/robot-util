@@ -1,12 +1,12 @@
 #include <stdio.h>
+#include <unistd.h>
+
+#include <pthread.h>
 
 #include "gpio.h"
 #include "devices/rotary_encoder.h"
 
-gpio_chip_t* chip;
-rotary_encoder_t* encoder;
-
-int loop() {
+int loop(rotary_encoder_t* encoder) {
     int clicked, moved;
     int pressed, motion;
     int success;
@@ -35,6 +35,8 @@ int loop() {
             printf("Moved %s!\n", motion_type);
             moved = 1;
         }
+
+        usleep(1000000 / 5);
     }
 
     return 0;
@@ -42,6 +44,9 @@ int loop() {
 
 int main(int argc, const char** argv) {
     struct rotary_encoder_pins pins;
+
+    gpio_chip_t* chip;
+    rotary_encoder_t* encoder;
 
     int result;
 
@@ -59,7 +64,7 @@ int main(int argc, const char** argv) {
         return 1;
     }
 
-    result = loop();
+    result = loop(encoder);
 
     rotary_encoder_close(encoder);
     gpio_chip_close(chip);

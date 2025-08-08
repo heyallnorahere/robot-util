@@ -87,23 +87,15 @@ int rotary_encoder_get_direction(const struct rotary_encoder_state* current,
         return 0;
     }
 
-    // nor do we want ambiguous states
-    if (current->a == current->b) {
-        return 0;
-    }
-
-    // we do not want the tail end of a frame to be caught as another signal
-    if ((last->a && !current->a) || (last->b && !current->a)) {
-        return 0;
-    }
-
-    // clockwise, a rises before b
-    // counter-clockwise, b rises before a
-    if (current->a) {
+    if (current->a && !last->a && !current->b) {
         return 1;
-    } else {
+    }
+
+    if (current->b && !last->b && !current->a) {
         return -1;
     }
+
+    return 0;
 }
 
 int rotary_encoder_get_motion(rotary_encoder_t* encoder, int* motion) {
