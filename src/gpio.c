@@ -83,7 +83,7 @@ int gpio_set_pin_request(gpio_chip_t* chip, size_t pin_count, const unsigned int
     memset(&gpiod_config, 0, sizeof(struct gpiod_line_request_config));
     gpiod_config.consumer = chip->consumer;
     gpiod_config.request_type = (int)config->type;
-    gpiod_config.flags = 0;
+    gpiod_config.flags = (int)config->flags;
 
     memset(default_values, 0, sizeof(int) * pin_count);
 

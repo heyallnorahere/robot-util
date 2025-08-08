@@ -2,6 +2,7 @@
 #define GPIO_H
 
 #include <stddef.h>
+#include <stdint.h>
 
 typedef struct gpio_chip gpio_chip_t;
 
@@ -14,8 +15,18 @@ typedef enum gpio_request_type {
     GPIO_REQUEST_EVENT_BOTH_EDGES,
 } gpio_request_type;
 
+typedef enum gpio_request_flag {
+    GPIO_REQUEST_FLAG_OPEN_DRAIN = 1 << 0,
+    GPIO_REQUEST_FLAG_OPEN_SOURCE = 1 << 1,
+    GPIO_REQUEST_FLAG_ACTIVE_LOW = 1 << 2,
+    GPIO_REQUEST_FLAG_BIAS_DISABLE = 1 << 3,
+    GPIO_REQUEST_FLAG_BIAS_PULL_DOWN = 1 << 4,
+    GPIO_REQUEST_FLAG_BIAS_PULL_UP = 1 << 5,
+} gpio_request_flag;
+
 struct gpio_request_config {
     gpio_request_type type;
+    uint32_t flags;
 };
 
 // opens a gpio chip with a consistent consumer. copies strings.

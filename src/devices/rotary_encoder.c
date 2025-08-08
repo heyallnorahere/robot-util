@@ -24,6 +24,7 @@ rotary_encoder_t* rotary_encoder_open(gpio_chip_t* chip, const struct rotary_enc
     memcpy(&encoder->pins, pins, sizeof(struct rotary_encoder_pins));
 
     config.type = GPIO_REQUEST_DIRECTION_INPUT;
+    config.flags = GPIO_REQUEST_FLAG_BIAS_PULL_DOWN;
 
     // rotary_encoder_pins is packed
     if (!gpio_set_pin_request(chip, 3, (unsigned int*)pins, &config)) {
