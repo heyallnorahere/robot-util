@@ -16,6 +16,8 @@ rotary_encoder_t* rotary_encoder_open(gpio_chip_t* chip, const struct rotary_enc
     rotary_encoder_t* encoder;
     struct gpio_request_config config;
 
+    unsigned int rotary_pins[2];
+
     encoder = (rotary_encoder_t*)malloc(sizeof(rotary_encoder_t));
     encoder->chip = chip;
 
@@ -24,14 +26,23 @@ rotary_encoder_t* rotary_encoder_open(gpio_chip_t* chip, const struct rotary_enc
     config.type = GPIO_REQUEST_DIRECTION_INPUT;
     config.flags = GPIO_REQUEST_FLAG_BIAS_PULL_DOWN;
 
-    // rotary_encoder_pins is packed
-    if (!gpio_set_pin_request(chip, 3, (unsigned int*)pins, &config)) {
-        free(encoder);
+    rotary_pins[0] = pins->a;
+    rotary_pins[1] = pins->b;
+
+    if (!gpio_set_pin_request(chip, 2, rotary_pins, &config)) {
+        rotary_encoder_close(encoder);
+        return NULL;
+    }
+
+    config.flags = GPIO_REQUEST_FLAG_BIAS_PULL_UP | GPIO_REQUEST_FLAG_ACTIVE_LOW;
+
+    if (!gpio_set_pin_request(chip, 1, &pins->sw, &config)) {
+        rotary_encoder_close(encoder);
         return NULL;
     }
 
     if (!gpio_get_digital(chip, 1, &encoder->pins.a, &encoder->last_state)) {
-        free(encoder);
+        rotary_encoder_close(encoder);
         return NULL;
     }
 
