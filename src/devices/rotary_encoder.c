@@ -83,7 +83,7 @@ void rotary_encoder_close(rotary_encoder_t* encoder) {
 int rotary_encoder_get_direction(const struct rotary_encoder_state* current,
                                  const struct rotary_encoder_state* last) {
     // we dont want duplicate signals
-    if (current->a == last->a || current->b == last->b) {
+    if (current->a == last->a && current->b == last->b) {
         return 0;
     }
 
