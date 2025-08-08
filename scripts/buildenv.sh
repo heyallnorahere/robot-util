@@ -5,7 +5,7 @@ TARGETARCH=$2
 BUILDARCH=$3
 
 apt-get update
-apt-get install -y jq cmake build-essential
+apt-get install -y jq cmake gcc binutils
 
 SCRIPTDIR=$(realpath $(dirname $0))
 if [[ $TARGETARCH != $BUILDARCH ]]; then

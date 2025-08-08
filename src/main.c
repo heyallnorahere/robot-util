@@ -36,7 +36,7 @@ int loop(rotary_encoder_t* encoder) {
             moved = 1;
         }
 
-        usleep(1000000 / 5);
+        usleep(1000000 / 200);
     }
 
     return 0;
