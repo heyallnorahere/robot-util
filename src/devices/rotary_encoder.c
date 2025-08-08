@@ -5,12 +5,35 @@
 #include <malloc.h>
 #include <string.h>
 
+struct rotary_encoder_state {
+    int a, b;
+};
+
 struct rotary_encoder {
     gpio_chip_t* chip;
     struct rotary_encoder_pins pins;
 
-    int last_state;
+    struct rotary_encoder_state last_state;
 };
+
+int rotary_encoder_sample(rotary_encoder_t* encoder, struct rotary_encoder_state* state) {
+    unsigned int pins[2];
+    int values[2];
+
+    int success;
+
+    pins[0] = encoder->pins.a;
+    pins[1] = encoder->pins.b;
+
+    if (!gpio_get_digital(encoder->chip, 2, pins, values)) {
+        return 0;
+    }
+
+    state->a = values[0];
+    state->b = values[1];
+
+    return 1;
+}
 
 rotary_encoder_t* rotary_encoder_open(gpio_chip_t* chip, const struct rotary_encoder_pins* pins) {
     rotary_encoder_t* encoder;
@@ -41,7 +64,7 @@ rotary_encoder_t* rotary_encoder_open(gpio_chip_t* chip, const struct rotary_enc
         return NULL;
     }
 
-    if (!gpio_get_digital(chip, 1, &encoder->pins.a, &encoder->last_state)) {
+    if (!rotary_encoder_sample(encoder, &encoder->last_state)) {
         rotary_encoder_close(encoder);
         return NULL;
     }
@@ -57,15 +80,21 @@ void rotary_encoder_close(rotary_encoder_t* encoder) {
     free(encoder);
 }
 
-int rotary_encoder_get_direction(int a, int b, int last_state) {
-    // we want to make sure a is high
-    // so that we dont get duplicate signals
-    if (a == last_state || !a) {
+int rotary_encoder_get_direction(const struct rotary_encoder_state* current,
+                                 const struct rotary_encoder_state* last) {
+    // we dont want duplicate signals
+    if (current->a == last->a || current->b == last->b) {
         return 0;
     }
 
-    // when rotating clockwise, a rises before b
-    if (a != b) {
+    // nor do we want ambiguous states
+    if (current->a == current->b) {
+        return 0;
+    }
+
+    // clockwise, a rises before b
+    // counter-clockwise, b rises before a
+    if (current->a) {
         return 1;
     } else {
         return -1;
@@ -73,25 +102,13 @@ int rotary_encoder_get_direction(int a, int b, int last_state) {
 }
 
 int rotary_encoder_get_motion(rotary_encoder_t* encoder, int* motion) {
-    int values[2];
-    int a, b;
-
-    unsigned int pins[2];
-    int success;
-
-    pins[0] = encoder->pins.a;
-    pins[1] = encoder->pins.b;
-
-    success = gpio_get_digital(encoder->chip, 2, pins, values);
-    if (!success) {
+    struct rotary_encoder_state state;
+    if (!rotary_encoder_sample(encoder, &state)) {
         return 0;
     }
 
-    a = values[0];
-    b = values[1];
-
-    *motion = rotary_encoder_get_direction(a, b, encoder->last_state);
-    encoder->last_state = a;
+    *motion = rotary_encoder_get_direction(&state, &encoder->last_state);
+    memcpy(&encoder->last_state, &state, sizeof(struct rotary_encoder_state));
 
     return 1;
 }
