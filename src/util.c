@@ -4,6 +4,8 @@
 #include <malloc.h>
 #include <stddef.h>
 
+#include <unistd.h>
+
 char* util_copy_string(const char* src) {
     char* dst;
     size_t len, total_size;
@@ -16,4 +18,8 @@ char* util_copy_string(const char* src) {
     strncpy(dst, src, len);
 
     return dst;
+}
+
+void util_sleep_ms(uint32_t ms) {
+    usleep(ms * 1e3);
 }

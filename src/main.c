@@ -4,6 +4,8 @@
 #include <pthread.h>
 
 #include "gpio.h"
+#include "i2c.h"
+
 #include "devices/rotary_encoder.h"
 
 int loop(rotary_encoder_t* encoder) {
@@ -42,7 +44,39 @@ int loop(rotary_encoder_t* encoder) {
     return 0;
 }
 
+void dump_i2c_addresses(uint32_t bus_index) {
+    i2c_bus_t* bus;
+    i2c_device_t* device;
+    struct i2c_bus_config config;
+
+    uint8_t read_byte;
+    ssize_t bytes_read;
+
+    config.addr_type = I2C_ADDRESS_7_BITS;
+    config.delay_ms = 1;
+
+    bus = i2c_bus_open(bus_index, &config);
+    if (!bus) {
+        return;
+    }
+
+    for (uint16_t i = 0; i < 0xFF; i++) {
+        device = i2c_device_open(bus, i);
+
+        bytes_read = i2c_device_read(device, 0x0, &read_byte, 1);
+        if (bytes_read >= 0) {
+            printf("%#2x\n", (int32_t)i);
+        }
+
+        i2c_device_close(device);
+    }
+
+    i2c_bus_close(bus);
+}
+
 int main(int argc, const char** argv) {
+    dump_i2c_addresses(1);
+
     struct rotary_encoder_pins pins;
 
     gpio_chip_t* chip;
