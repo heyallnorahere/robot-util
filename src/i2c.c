@@ -62,7 +62,6 @@ void i2c_bus_set_config(i2c_bus_t* bus, const struct i2c_bus_config* config) {
 
     // if no config was passed, set default
     bus->config.addr_type = I2C_ADDRESS_7_BITS;
-    bus->config.delay_ms = 1;
 }
 
 int i2c_bus_select(i2c_bus_t* bus, uint16_t address) {
@@ -101,7 +100,7 @@ void i2c_device_close(i2c_device_t* device) {
     free(device);
 }
 
-ssize_t i2c_device_read(i2c_device_t* device, uint8_t internal_addr, void* buffer, size_t length) {
+ssize_t i2c_device_read(i2c_device_t* device, void* buffer, size_t length) {
     int fd;
     size_t remaining, offset;
     ssize_t bytes_read;
@@ -112,15 +111,10 @@ ssize_t i2c_device_read(i2c_device_t* device, uint8_t internal_addr, void* buffe
     }
 
     fd = device->bus->fd;
-    if (write(fd, &internal_addr, sizeof(uint8_t)) < 0) {
-        perror("i2c write");
-        return -1;
-    }
 
     remaining = length;
     offset = 0;
 
-    util_sleep_ms(device->bus->config.delay_ms);
     do {
         offset_buffer = buffer + offset;
         bytes_read = read(fd, buffer, remaining);
@@ -141,8 +135,7 @@ ssize_t i2c_device_read(i2c_device_t* device, uint8_t internal_addr, void* buffe
     return offset;
 }
 
-ssize_t i2c_device_write(i2c_device_t* device, uint8_t internal_addr, const void* buffer,
-                         size_t length) {
+ssize_t i2c_device_write(i2c_device_t* device, const void* buffer, size_t length) {
     int fd;
     size_t remaining, offset;
     ssize_t bytes_written;
@@ -153,15 +146,10 @@ ssize_t i2c_device_write(i2c_device_t* device, uint8_t internal_addr, const void
     }
 
     fd = device->bus->fd;
-    if (write(fd, &internal_addr, sizeof(uint8_t)) < 0) {
-        perror("i2c write");
-        return -1;
-    }
 
     remaining = length;
     offset = 0;
 
-    util_sleep_ms(device->bus->config.delay_ms);
     do {
         offset_buffer = buffer + offset;
         bytes_written = write(fd, offset_buffer, remaining);
