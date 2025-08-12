@@ -103,7 +103,7 @@ hd44780_t* hd44780_open(hd44780_io_t* io, const uint8_t* row_offsets, uint8_t wi
         return NULL;
     }
 
-    screen = (hd44780_t*)malloc(sizeof(hd44780_t*));
+    screen = (hd44780_t*)malloc(sizeof(hd44780_t));
     screen->io = io;
 
     screen->width = width;
@@ -232,8 +232,8 @@ int hd44780_apply_config(hd44780_t* screen, const struct hd44780_screen_config* 
     return hd44780_send_config(screen);
 }
 
-const struct hd44780_screen_config* hd44780_get_config(hd44780_t* screen) {
-    return &screen->current_config;
+void hd44780_get_config(hd44780_t* screen, struct hd44780_screen_config* config) {
+    memcpy(config, &screen->current_config, sizeof(struct hd44780_screen_config));
 }
 
 hd44780_t* hd44780_open_20x4(hd44780_io_t* io) {

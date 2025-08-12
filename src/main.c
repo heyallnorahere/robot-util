@@ -36,6 +36,8 @@ void menu_item_quit() {
 
 int init() {
     struct rotary_encoder_pins pins;
+    struct hd44780_screen_config screen_config;
+
     hd44780_io_t* screen_io;
 
     chip = NULL;
@@ -74,6 +76,14 @@ int init() {
     screen = hd44780_open_20x4(screen_io);
 
     if (!screen) {
+        return 1;
+    }
+
+    hd44780_get_config(screen, &screen_config);
+
+    screen_config.underline_cursor_visible = 1;
+
+    if (!hd44780_apply_config(screen, &screen_config)) {
         return 1;
     }
 
@@ -193,10 +203,6 @@ int render_menu() {
             free(items);
             return 1;
         }
-
-        memset(name_buffer, '\0', (max_name_len + 1) * sizeof(char));
-        memset(text_buffer, ' ', (width + 1) * sizeof(char));
-        text_buffer[width] = '\0';
 
         name_len = strlen(items[current_item]);
         if (name_len <= max_name_len) {

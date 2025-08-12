@@ -68,8 +68,8 @@ int hd44780_set_cursor_pos(hd44780_t* screen, uint8_t x, uint8_t y);
 // applies a config to the screen. returns 1 on success, 0 on failure
 int hd44780_apply_config(hd44780_t* screen, const struct hd44780_screen_config* config);
 
-// returns a pointer to the screen's last set config
-const struct hd44780_screen_config* hd44780_get_config(hd44780_t* screen);
+// retrieves the last-applied configuration
+void hd44780_get_config(hd44780_t* screen, struct hd44780_screen_config* config);
 
 // SPECIALIZATION
 
