@@ -2,6 +2,7 @@
 
 #include "../../util.h"
 
+#include <string.h>
 #include <malloc.h>
 
 struct hd44780 {
@@ -95,7 +96,7 @@ int hd44780_init(hd44780_t* screen) {
     return 1;
 }
 
-hd44780_t* hd44780_open(hd44780_io_t* io) {
+hd44780_t* hd44780_open(hd44780_io_t* io, const uint8_t* row_offsets, size_t row_count) {
     hd44780_t* screen;
     int success;
 
@@ -105,7 +106,10 @@ hd44780_t* hd44780_open(hd44780_io_t* io) {
 
     screen = (hd44780_t*)malloc(sizeof(hd44780_t*));
     screen->io = io;
-    screen->row_offsets = NULL;
+
+    screen->row_count = row_count;
+    screen->row_offsets = (uint8_t*)malloc(row_count * sizeof(uint8_t));
+    memcpy(screen->row_offsets, row_offsets, row_count * sizeof(uint8_t));
 
     screen->display_mode = HD44780_DISPLAY_MODE_COMMAND;
     screen->display_control = HD44780_DISPLAY_CONTROL_COMMAND;
@@ -120,6 +124,10 @@ hd44780_t* hd44780_open(hd44780_io_t* io) {
 }
 
 void hd44780_close(hd44780_t* screen) {
+    if (!screen) {
+        return;
+    }
+
     if (screen->io->io_close) {
         screen->io->io_close(screen->io->user_data);
     }
@@ -127,4 +135,10 @@ void hd44780_close(hd44780_t* screen) {
     free(screen->io);
     free(screen->row_offsets);
     free(screen);
+}
+
+hd44780_t* hd44780_open_20x4(hd44780_io_t* io) {
+    static const uint8_t row_offsets[] = { 0, 64, 20, 84 };
+
+    return hd44780_open(io, row_offsets, 4);
 }

@@ -26,10 +26,15 @@ typedef struct hd44780_io {
 typedef struct hd44780 hd44780_t;
 
 // opens an HD44780 screen. takes ownership of the IO interface
-hd44780_t* hd44780_open(hd44780_io_t* io);
+hd44780_t* hd44780_open(hd44780_io_t* io, const uint8_t* row_offsets, size_t row_count);
 
 // closes the screen
 void hd44780_close(hd44780_t* screen);
+
+// SPECIALIZATION
+
+// opens an HD44780 screen with dimensions 20x4. see hd44780_open
+hd44780_t* hd44780_open_20x4(hd44780_io_t* io);
 
 // IO INTERFACES
 

@@ -12,13 +12,14 @@ typedef struct hd44780_i2c_io {
 
 enum {
     HD44780_ENABLE = (1 << 2),
+    HD44780_BACKLIGHT_ON = (1 << 3),
 };
 
 void hd44780_i2c_write_nibble(hd44780_i2c_io_t* io, uint8_t nibble, uint8_t* buffer) {
     uint8_t value, backlight_flag;
 
     value = (nibble & 0x0f) << 4;
-    backlight_flag = io->backlight_on ? (1 << 3) : 0;
+    backlight_flag = io->backlight_on ? HD44780_BACKLIGHT_ON : 0;
 
     buffer[0] = value | HD44780_ENABLE | backlight_flag;
     buffer[1] = (value & ~HD44780_ENABLE) | backlight_flag;

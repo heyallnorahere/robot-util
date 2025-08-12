@@ -8,7 +8,6 @@
 
 #include <gpiod.h>
 
-// gpio_chip_t = struct gpio_chip
 struct gpio_chip {
     struct gpiod_chip* chip;
 

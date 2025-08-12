@@ -47,6 +47,10 @@ i2c_bus_t* i2c_bus_open(uint32_t index, const struct i2c_bus_config* config) {
 }
 
 void i2c_bus_close(i2c_bus_t* bus) {
+    if (!bus) {
+        return;
+    }
+
     if (bus->fd >= 0) {
         close(bus->fd);
     }
@@ -96,6 +100,10 @@ i2c_device_t* i2c_device_open(i2c_bus_t* bus, uint16_t address) {
 }
 
 void i2c_device_close(i2c_device_t* device) {
+    if (!device) {
+        return;
+    }
+
     // we dont need to free anything else
     free(device);
 }
