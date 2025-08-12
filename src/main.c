@@ -87,6 +87,8 @@ int init() {
     mutex_initialized = 1;
     menu = menu_create();
 
+    menu_add(menu, "Quit", menu_item_quit);
+
     return 0;
 }
 
@@ -193,6 +195,10 @@ int render_menu() {
             free(items);
             return 1;
         }
+
+        memset(name_buffer, '\0', (max_name_len + 1) * sizeof(char));
+        memset(text_buffer, ' ', (width + 1) * sizeof(char));
+        text_buffer[width] = '\0';
 
         name_len = strlen(items[current_item]);
         if (name_len <= max_name_len) {

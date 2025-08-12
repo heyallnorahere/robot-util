@@ -11,29 +11,56 @@ typedef struct hd44780_i2c_io {
 } hd44780_i2c_io_t;
 
 enum {
+    HD44780_REGISTER_SELECT = (1 << 0),
+
     HD44780_ENABLE = (1 << 2),
     HD44780_BACKLIGHT_ON = (1 << 3),
 };
 
-void hd44780_i2c_write_nibble(hd44780_i2c_io_t* io, uint8_t nibble, uint8_t* buffer) {
+int hd44780_i2c_write_nibble(hd44780_i2c_io_t* io, uint8_t nibble) {
     uint8_t value, backlight_flag;
+    uint8_t buffer[2];
+    int success;
 
     value = (nibble & 0x0f) << 4;
     backlight_flag = io->backlight_on ? HD44780_BACKLIGHT_ON : 0;
 
     buffer[0] = value | HD44780_ENABLE | backlight_flag;
     buffer[1] = (value & ~HD44780_ENABLE) | backlight_flag;
+
+    for (size_t i = 0; i < ARRAYSIZE(buffer); i++) {
+        success = i2c_device_write(io->device, &buffer[i], sizeof(uint8_t));
+        if (!success) {
+            return 0;
+        }
+    }
+
+    return success;
+}
+
+int hd44780_i2c_write_byte(hd44780_i2c_io_t* io, uint8_t byte, uint8_t flags) {
+    int success;
+
+    uint8_t nibbles[] = {
+        ((byte & 0xf0) >> 4) | flags,
+        (byte & 0x0f) | flags,
+    };
+
+    for (size_t i = 0; i < ARRAYSIZE(nibbles); i++) {
+        success = hd44780_i2c_write_nibble(io, nibbles[i]);
+        if (!success) {
+            return 0;
+        }
+    }
+
+    return 1;
 }
 
 int hd44780_i2c_send_command(void* user_data, uint8_t command) {
     hd44780_i2c_io_t* io;
-    uint8_t buffer[2 * 2]; // 2 sent bytes per nibble * 2 nibbles per byte
 
     io = (hd44780_i2c_io_t*)user_data;
-    hd44780_i2c_write_nibble(io, (command & 0xf0) >> 4, &buffer[0]);
-    hd44780_i2c_write_nibble(io, command & 0x0f, &buffer[2]);
-
-    return i2c_device_write(io->device, buffer, sizeof(uint8_t) * 4);
+    return hd44780_i2c_write_byte(io, command, 0x00);
 }
 
 int hd44780_i2c_send_data(void* user_data, const void* data, size_t size) {
@@ -44,15 +71,14 @@ int hd44780_i2c_send_data(void* user_data, const void* data, size_t size) {
     uint8_t buffer[stride * size];
     
     io = (hd44780_i2c_io_t*)user_data;
-    bytes = (const uint8_t*)bytes;
+    bytes = (const uint8_t*)data;
 
     for (size_t i = 0; i < size; i++) {
         size_t offset = stride * i;
         size_t lsb_offset = offset + 2;
 
         uint8_t value = bytes[i];
-        hd44780_i2c_write_nibble(io, (value & 0xf0) >> 4, buffer + offset);
-        hd44780_i2c_write_nibble(io, value & 0x0f, buffer + lsb_offset);
+        hd44780_i2c_write_byte(io, value, HD44780_REGISTER_SELECT);
     }
 
     return i2c_device_write(io->device, buffer, stride * size);

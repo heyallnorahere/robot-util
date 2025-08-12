@@ -44,7 +44,7 @@ void menu_add(menu_t* menu, const char* text, menu_callback_t action) {
     item->text = strdup(text);
     item->action = action;
 
-    node = list_insert(menu->items, list_end(menu->items), NULL);
+    node = list_insert(menu->items, list_end(menu->items), item);
     if (!menu->current_item) {
         menu->current_item = node;
     }
