@@ -31,9 +31,7 @@ int mutex_initialized;
 void menu_item_quit() {
     printf("Quitting...\n");
 
-    pthread_mutex_lock(&mutex);
     should_exit = 1;
-    pthread_mutex_unlock(&mutex);
 }
 
 int init() {
@@ -265,6 +263,8 @@ int main(int argc, const char** argv) {
             if (should_break) {
                 break;
             }
+            
+            util_sleep_ms(5);
         }
     }
 
