@@ -1,11 +1,16 @@
 #include <stdio.h>
 #include <unistd.h>
+#include <time.h>
+#include <string.h>
+#include <malloc.h>
 
 #include <pthread.h>
 
 #include "gpio.h"
 #include "i2c.h"
 #include "util.h"
+
+#include "menu.h"
 
 #include "devices/rotary_encoder.h"
 #include "devices/hd44780/screen.h"
@@ -17,6 +22,20 @@ i2c_bus_t* bus;
 i2c_device_t* device;
 hd44780_t* screen;
 
+menu_t* menu;
+int should_exit;
+
+pthread_mutex_t mutex;
+int mutex_initialized;
+
+void menu_item_quit() {
+    printf("Quitting...\n");
+
+    pthread_mutex_lock(&mutex);
+    should_exit = 1;
+    pthread_mutex_unlock(&mutex);
+}
+
 int init() {
     struct rotary_encoder_pins pins;
     hd44780_io_t* screen_io;
@@ -27,6 +46,11 @@ int init() {
     bus = NULL;
     device = NULL;
     screen = NULL;
+
+    mutex_initialized = 0;
+    menu = NULL;
+
+    should_exit = 0;
 
     chip = gpio_chip_open("/dev/gpiochip0", "robot-util");
     if (!chip) {
@@ -55,46 +79,152 @@ int init() {
         return 1;
     }
 
+    if (pthread_mutex_init(&mutex, NULL)) {
+        perror("pthread_mutex_init");
+        return 1;
+    }
+
+    mutex_initialized = 1;
+    menu = menu_create();
+
     return 0;
 }
 
-int loop() {
-    int clicked, moved;
+void time_diff(const struct timespec* t0, const struct timespec* t1, struct timespec* delta) {
+    delta->tv_sec = t1->tv_sec - t0->tv_sec;
+    delta->tv_nsec = t1->tv_nsec - t0->tv_nsec;
+
+    if (t1->tv_nsec < t0->tv_nsec) {
+        delta->tv_sec -= 1;
+        delta->tv_nsec += 1e9;
+    }
+}
+
+void* sample_thread(void* arg) {
+    static const uint32_t sample_interval_us = 5e3;
+
     int pressed, motion;
     int success;
+    const char* menu_item_name;
 
-    const char* motion_type;
+    int should_break;
 
-    clicked = moved = 0;
-    while (!clicked || !moved) {
+    struct timespec t0, t1, delta;
+    uint32_t delta_us;
+
+    while (1) {
+        clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &t0);
+
         success = rotary_encoder_get(encoder, &pressed, &motion);
         if (!success) {
-            return 1;
-        }
-
-        if (pressed && !clicked) {
-            printf("Clicked!\n");
-            clicked = 1;
+            printf("Failed to query rotary encoder; skipping sample\n");
+            continue;
         }
 
         if (motion != 0) {
             if (motion > 0) {
-                motion_type = "clockwise";
+                printf("Moved cursor clockwise\n");
             } else {
-                motion_type = "counter-clockwise";
+                printf("Moved cursor counter-clockwise\n");
             }
 
-            printf("Moved %s!\n", motion_type);
-            moved = 1;
+            pthread_mutex_lock(&mutex);
+            menu_move_cursor(menu, motion > 0);
+            pthread_mutex_unlock(&mutex);
         }
 
-        util_sleep_ms(5);
+        if (pressed) {
+            pthread_mutex_lock(&mutex);
+            menu_item_name = menu_get_current_item_name(menu);
+            printf("Selected menu item: %s\n", menu_item_name ? menu_item_name : "<null>");
+
+            menu_select(menu);
+            pthread_mutex_unlock(&mutex);
+        }
+
+        pthread_mutex_lock(&mutex);
+        should_break = should_exit;
+        pthread_mutex_unlock(&mutex);
+
+        if (should_break) {
+            break;
+        }
+
+        clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &t1);
+        time_diff(&t0, &t1, &delta);
+
+        if (delta.tv_sec == 0) {
+            delta_us = delta.tv_nsec / 1e3;
+            if (delta_us < sample_interval_us) {
+                util_sleep_us(sample_interval_us - delta_us);
+            }
+        }
     }
 
+    return NULL;
+}
+
+int render_menu() {
+    const char** items;
+    size_t item_count, cursor;
+    uint8_t width, height;
+    size_t current_item;
+    size_t name_len, max_name_len;
+
+    if (!hd44780_clear(screen)) {
+        return 1;
+    }
+
+    hd44780_get_size(screen, &width, &height);
+    max_name_len = width - 2;
+
+    char name_buffer[max_name_len + 1];
+    char text_buffer[width + 1];
+
+    pthread_mutex_lock(&mutex);
+    item_count = menu_get_menu_items(menu, height, NULL, NULL);
+
+    items = (const char**)malloc(item_count * sizeof(void*));
+    item_count = menu_get_menu_items(menu, height, items, &cursor);
+    pthread_mutex_unlock(&mutex);
+
+    for (current_item = 0; current_item < item_count; current_item++) {
+        if (!hd44780_set_cursor_pos(screen, 0, (uint8_t)current_item)) {
+            free(items);
+            return 1;
+        }
+
+        name_len = strlen(items[current_item]);
+        if (name_len <= max_name_len) {
+            strncpy(name_buffer, items[current_item], name_len);
+        } else {
+            char temp_name_buffer[name_len + 1];
+            strncpy(temp_name_buffer, items[current_item], name_len);
+
+            // -3 to allow for elipses
+            temp_name_buffer[max_name_len - 3] = '\0';
+            snprintf(name_buffer, max_name_len, "%s...", temp_name_buffer);
+        }
+
+        snprintf(text_buffer, width, "%c %s", current_item == cursor ? '>' : ' ', name_buffer);
+
+        if (!hd44780_write(screen, text_buffer)) {
+            free(items);
+            return 1;
+        }
+    }
+
+    free(items);
     return 0;
 }
 
 void shutdown() {
+    menu_free(menu);
+
+    if (mutex_initialized) {
+        pthread_mutex_destroy(&mutex);
+    }
+
     hd44780_close(screen);
     i2c_device_close(device);
     i2c_bus_close(bus);
@@ -104,12 +234,35 @@ void shutdown() {
 }
 
 int main(int argc, const char** argv) {
-    int result;
+    int result, should_break;
+    pthread_t sample_thread_handle;
 
     result = init();
-    if (result == 0) {
-        result = loop();
+    if (!result) {
+        if (pthread_create(&sample_thread_handle, NULL, sample_thread, NULL)) {
+            perror("pthread_create");
+            return 1;
+        }
+
+        should_break = 0;
+        while (1) {
+            result = render_menu();
+
+            pthread_mutex_lock(&mutex);
+            if (result) {
+                should_exit = 1;
+            }
+
+            should_break = should_exit;
+            pthread_mutex_unlock(&mutex);
+
+            if (should_break) {
+                break;
+            }
+        }
     }
+
+    pthread_join(sample_thread_handle, NULL);
 
     shutdown();
     return result;

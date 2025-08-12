@@ -1,7 +1,5 @@
 #include "gpio.h"
 
-#include "util.h"
-
 #include <stdio.h>
 #include <malloc.h>
 #include <string.h>
@@ -22,8 +20,8 @@ gpio_chip_t* gpio_chip_open(const char* device, const char* consumer) {
     int len;
 
     chip = (gpio_chip_t*)malloc(sizeof(gpio_chip_t));
-    chip->device = util_copy_string(device);
-    chip->consumer = util_copy_string(consumer);
+    chip->device = strdup(device);
+    chip->consumer = strdup(consumer);
 
     chip->chip = gpiod_chip_open(device);
     if (!chip->chip) {

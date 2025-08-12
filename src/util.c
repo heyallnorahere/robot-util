@@ -1,25 +1,14 @@
 #include "util.h"
 
-#include <string.h>
-#include <malloc.h>
-#include <stddef.h>
-
 #include <unistd.h>
 
-char* util_copy_string(const char* src) {
-    char* dst;
-    size_t len, total_size;
+void util_sleep_us(uint32_t us) { usleep(us); }
+void util_sleep_ms(uint32_t ms) { util_sleep_us(ms * 1e3); }
 
-    len = strlen(src);
-    total_size = sizeof(char) * (len + 1);
-
-    dst = (char*)malloc(total_size);
-    memset(dst, 0, total_size);
-    strncpy(dst, src, len);
-
-    return dst;
-}
-
-void util_sleep_ms(uint32_t ms) {
-    usleep(ms * 1e3);
+void util_set_bit_flag(uint8_t* dst, uint8_t flag, int enabled) {
+    if (enabled) {
+        *dst |= flag;
+    } else {
+        *dst &= ~flag;
+    }
 }
