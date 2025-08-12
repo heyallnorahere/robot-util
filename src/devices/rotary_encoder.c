@@ -57,7 +57,7 @@ rotary_encoder_t* rotary_encoder_open(gpio_chip_t* chip, const struct rotary_enc
         return NULL;
     }
 
-    config.flags = GPIO_REQUEST_FLAG_BIAS_PULL_UP | GPIO_REQUEST_FLAG_ACTIVE_LOW;
+    config.flags = GPIO_REQUEST_FLAG_ACTIVE_LOW;
 
     if (!gpio_set_pin_request(chip, 1, &pins->sw, &config)) {
         rotary_encoder_close(encoder);

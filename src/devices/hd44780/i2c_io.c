@@ -22,11 +22,10 @@ int hd44780_i2c_write_nibble(hd44780_i2c_io_t* io, uint8_t nibble) {
     uint8_t buffer[2];
     int success;
 
-    value = (nibble & 0x0f) << 4;
     backlight_flag = io->backlight_on ? HD44780_BACKLIGHT_ON : 0;
 
-    buffer[0] = value | HD44780_ENABLE | backlight_flag;
-    buffer[1] = (value & ~HD44780_ENABLE) | backlight_flag;
+    buffer[0] = nibble | HD44780_ENABLE | backlight_flag;
+    buffer[1] = (nibble & ~HD44780_ENABLE) | backlight_flag;
 
     for (size_t i = 0; i < ARRAYSIZE(buffer); i++) {
         success = i2c_device_write(io->device, &buffer[i], sizeof(uint8_t));
@@ -42,8 +41,8 @@ int hd44780_i2c_write_byte(hd44780_i2c_io_t* io, uint8_t byte, uint8_t flags) {
     int success;
 
     uint8_t nibbles[] = {
-        ((byte & 0xf0) >> 4) | flags,
-        (byte & 0x0f) | flags,
+        (byte & 0xf0) | flags,
+        ((byte & 0x0f) << 4) | flags,
     };
 
     for (size_t i = 0; i < ARRAYSIZE(nibbles); i++) {
@@ -60,28 +59,26 @@ int hd44780_i2c_send_command(void* user_data, uint8_t command) {
     hd44780_i2c_io_t* io;
 
     io = (hd44780_i2c_io_t*)user_data;
-    return hd44780_i2c_write_byte(io, command, 0x00);
+    return hd44780_i2c_write_byte(io, command, 0);
 }
 
 int hd44780_i2c_send_data(void* user_data, const void* data, size_t size) {
-    static const size_t stride = 2 * 2;
+    int success;
 
     hd44780_i2c_io_t* io;
     const uint8_t* bytes;
-    uint8_t buffer[stride * size];
     
     io = (hd44780_i2c_io_t*)user_data;
     bytes = (const uint8_t*)data;
 
     for (size_t i = 0; i < size; i++) {
-        size_t offset = stride * i;
-        size_t lsb_offset = offset + 2;
-
-        uint8_t value = bytes[i];
-        hd44780_i2c_write_byte(io, value, HD44780_REGISTER_SELECT);
+        success = hd44780_i2c_write_byte(io, bytes[i], HD44780_REGISTER_SELECT);
+        if (!success) {
+            return 0;
+        }
     }
 
-    return i2c_device_write(io->device, buffer, stride * size);
+    return 1;
 }
 
 int hd44780_i2c_set_backlight(void* user_data, int backlight_on) {
