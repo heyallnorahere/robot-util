@@ -23,14 +23,12 @@ i2c_device_t* device;
 hd44780_t* screen;
 
 menu_t* menu;
-int should_exit;
+int should_exit, redraw_menu;
 
 pthread_mutex_t mutex;
 int mutex_initialized;
 
-void menu_item_test() {
-    printf("Test! Hello!\n");
-}
+void menu_item_test() { printf("Test! Hello!\n"); }
 
 void menu_item_quit() {
     printf("Quitting...\n");
@@ -44,6 +42,11 @@ int init() {
 
     hd44780_io_t* screen_io;
 
+    size_t current_menu_item;
+    char* name_buffer;
+    size_t max_name_len;
+    uint8_t width, height;
+
     chip = NULL;
     encoder = NULL;
 
@@ -55,6 +58,7 @@ int init() {
     menu = NULL;
 
     should_exit = 0;
+    redraw_menu = 1;
 
     chip = gpio_chip_open("/dev/gpiochip0", "robot-util");
     if (!chip) {
@@ -83,13 +87,9 @@ int init() {
         return 1;
     }
 
-    hd44780_get_config(screen, &screen_config);
-
-    screen_config.underline_cursor_visible = 1;
-
-    if (!hd44780_apply_config(screen, &screen_config)) {
-        return 1;
-    }
+    hd44780_get_size(screen, &width, &height);
+    max_name_len = width - 1;
+    name_buffer = (char*)malloc((max_name_len + 1) * sizeof(char));
 
     if (pthread_mutex_init(&mutex, NULL)) {
         perror("pthread_mutex_init");
@@ -99,9 +99,14 @@ int init() {
     mutex_initialized = 1;
     menu = menu_create();
 
-    menu_add(menu, "Test", menu_item_test);
+    for (current_menu_item = 0; current_menu_item < 4; current_menu_item++) {
+        snprintf(name_buffer, max_name_len, "Test #%u", (uint32_t)(current_menu_item + 1));
+        menu_add(menu, name_buffer, menu_item_test);
+    }
+
     menu_add(menu, "Quit", menu_item_quit);
 
+    free(name_buffer);
     return 0;
 }
 
@@ -147,6 +152,7 @@ void* sample_thread(void* arg) {
 
             pthread_mutex_lock(&mutex);
             menu_move_cursor(menu, motion > 0);
+            redraw_menu = 1;
             pthread_mutex_unlock(&mutex);
         }
 
@@ -186,6 +192,8 @@ void* sample_thread(void* arg) {
 
 int render_menu() {
     const char** items;
+    uint8_t* name_lengths;
+
     size_t item_count, cursor;
     uint8_t width, height;
     size_t current_item;
@@ -196,10 +204,9 @@ int render_menu() {
     }
 
     hd44780_get_size(screen, &width, &height);
-    max_name_len = width - 2;
 
+    max_name_len = width - 1;
     char name_buffer[max_name_len + 1];
-    char text_buffer[width + 1];
 
     pthread_mutex_lock(&mutex);
     item_count = menu_get_menu_items(menu, height, NULL, NULL);
@@ -208,9 +215,12 @@ int render_menu() {
     item_count = menu_get_menu_items(menu, height, items, &cursor);
     pthread_mutex_unlock(&mutex);
 
+    name_lengths = (uint8_t*)malloc(item_count * sizeof(uint8_t));
     for (current_item = 0; current_item < item_count; current_item++) {
         if (!hd44780_set_cursor_pos(screen, 0, (uint8_t)current_item)) {
             free(items);
+            free(name_lengths);
+
             return 1;
         }
 
@@ -224,17 +234,26 @@ int render_menu() {
             // -3 to allow for elipses
             temp_name_buffer[max_name_len - 3] = '\0';
             snprintf(name_buffer, max_name_len, "%s...", temp_name_buffer);
+
+            name_len = max_name_len;
         }
 
-        snprintf(text_buffer, width, "%c %s", current_item == cursor ? '>' : ' ', name_buffer);
-
-        if (!hd44780_write(screen, text_buffer)) {
+        name_lengths[current_item] = (uint8_t)max_name_len;
+        if (!hd44780_write(screen, name_buffer)) {
             free(items);
+            free(name_lengths);
+
             return 1;
         }
     }
 
     free(items);
+    free(name_lengths);
+
+    pthread_mutex_lock(&mutex);
+    redraw_menu = 0;
+    pthread_mutex_unlock(&mutex);
+
     return 0;
 }
 
@@ -254,7 +273,7 @@ void shutdown() {
 }
 
 int main(int argc, const char** argv) {
-    int result, should_break;
+    int result, should_break, should_redraw;
     pthread_t sample_thread_handle;
 
     result = init();
@@ -265,8 +284,12 @@ int main(int argc, const char** argv) {
         }
 
         should_break = 0;
+        should_redraw = 0;
+
         while (1) {
-            result = render_menu();
+            if (should_redraw) {
+                result = render_menu();
+            }
 
             pthread_mutex_lock(&mutex);
             if (result) {
@@ -274,12 +297,13 @@ int main(int argc, const char** argv) {
             }
 
             should_break = should_exit;
+            should_redraw = redraw_menu;
             pthread_mutex_unlock(&mutex);
 
             if (should_break) {
                 break;
             }
-            
+
             util_sleep_ms(5);
         }
     }

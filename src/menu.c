@@ -79,7 +79,7 @@ const char* menu_get_current_item_name(menu_t* menu) {
 
 size_t menu_get_menu_items(menu_t* menu, size_t max_items, const char** items, size_t* cursor) {
     list_node_t* current_node;
-    size_t item_count, current_item;
+    size_t item_count, current_item, displayed_items;
     menu_item_t* item;
 
     current_node = list_begin(menu->items);
@@ -87,13 +87,10 @@ size_t menu_get_menu_items(menu_t* menu, size_t max_items, const char** items, s
 
     while (current_node) {
         item_count++;
-        if (item_count >= max_items) {
-            break;
-        }
-
         current_node = list_node_next(current_node);
     }
 
+    displayed_items = item_count > max_items ? max_items : item_count;
     if (items) {
         if (item_count <= max_items || !menu->current_item) {
             current_item = 0;
@@ -116,7 +113,11 @@ size_t menu_get_menu_items(menu_t* menu, size_t max_items, const char** items, s
             }
 
             current_node = list_node_previous(menu->current_item);
-            for (current_item = 0; current_item < item_count; current_item++) {
+            if (!current_node) {
+                current_node = list_end(menu->items);
+            }
+
+            for (current_item = 0; current_item < displayed_items; current_item++) {
                 item = (menu_item_t*)list_node_get(current_node);
                 items[current_item] = item->text;
 
@@ -128,7 +129,7 @@ size_t menu_get_menu_items(menu_t* menu, size_t max_items, const char** items, s
         }
     }
 
-    return item_count;
+    return displayed_items;
 }
 
 void menu_move_cursor(menu_t* menu, int clockwise) {
