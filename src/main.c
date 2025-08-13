@@ -150,7 +150,8 @@ void* sample_thread(void* arg) {
             pthread_mutex_unlock(&mutex);
         }
 
-        if (pressed && !button_pressed) {
+        // trigger on release
+        if (!pressed && button_pressed) {
             pthread_mutex_lock(&mutex);
             menu_item_name = menu_get_current_item_name(menu);
             printf("Selected menu item: %s\n", menu_item_name ? menu_item_name : "<null>");
