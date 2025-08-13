@@ -118,6 +118,7 @@ void time_diff(const struct timespec* t0, const struct timespec* t1, struct time
 void* sample_thread(void* arg) {
     static const uint32_t sample_interval_us = 5e3;
 
+    int button_pressed;
     int pressed, motion;
     int success;
     const char* menu_item_name;
@@ -127,6 +128,7 @@ void* sample_thread(void* arg) {
     struct timespec t0, t1, delta;
     uint32_t delta_us;
 
+    button_pressed = 0;
     while (1) {
         clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &t0);
 
@@ -148,7 +150,7 @@ void* sample_thread(void* arg) {
             pthread_mutex_unlock(&mutex);
         }
 
-        if (pressed) {
+        if (pressed && !button_pressed) {
             pthread_mutex_lock(&mutex);
             menu_item_name = menu_get_current_item_name(menu);
             printf("Selected menu item: %s\n", menu_item_name ? menu_item_name : "<null>");
@@ -156,6 +158,8 @@ void* sample_thread(void* arg) {
             menu_select(menu);
             pthread_mutex_unlock(&mutex);
         }
+
+        button_pressed = pressed;
 
         pthread_mutex_lock(&mutex);
         should_break = should_exit;
