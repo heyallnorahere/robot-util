@@ -198,6 +198,7 @@ int render_menu() {
     uint8_t width, height;
     size_t current_item;
     size_t name_len, max_name_len;
+    uint8_t selected_name_length;
 
     if (!hd44780_clear(screen)) {
         return 1;
@@ -247,6 +248,8 @@ int render_menu() {
         }
     }
 
+    selected_name_length = name_lengths[cursor];
+
     free(items);
     free(name_lengths);
 
@@ -254,7 +257,7 @@ int render_menu() {
     redraw_menu = 0;
     pthread_mutex_unlock(&mutex);
 
-    return 0;
+    return hd44780_set_cursor_pos(screen, selected_name_length, (uint8_t)cursor);
 }
 
 void shutdown() {
