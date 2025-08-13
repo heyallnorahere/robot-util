@@ -1,8 +1,10 @@
 {
     "build": [
-        "libgpiod-dev"
+        "libgpiod-dev",
+        "libcjson-dev"
     ],
     "runtime": [
-        "libgpiod2"
+        "libgpiod2",
+        "libcjson1"
     ]
 }

@@ -11,9 +11,12 @@
 #include "util.h"
 
 #include "menu.h"
+#include "config.h"
 
 #include "devices/rotary_encoder.h"
 #include "devices/hd44780/screen.h"
+
+struct robot_util_config config;
 
 gpio_chip_t* chip;
 rotary_encoder_t* encoder;
@@ -37,9 +40,11 @@ void menu_item_quit() {
 }
 
 int init() {
-    struct rotary_encoder_pins pins;
-
     hd44780_io_t* screen_io;
+
+    if (!config_load_or_default("config/util.json", &config)) {
+        return 1;
+    }
 
     size_t current_menu_item;
     char* name_buffer;
@@ -64,11 +69,7 @@ int init() {
         return 1;
     }
 
-    pins.a = 17;
-    pins.b = 27;
-    pins.sw = 22;
-
-    encoder = rotary_encoder_open(chip, &pins);
+    encoder = rotary_encoder_open(chip, &config.encoder_pins);
     if (!encoder) {
         return 1;
     }
@@ -78,7 +79,7 @@ int init() {
         return 1;
     }
 
-    device = i2c_device_open(bus, 0x27);
+    device = i2c_device_open(bus, config.lcd_address);
     screen_io = hd44780_i2c_open(device);
     screen = hd44780_open_20x4(screen_io);
 
