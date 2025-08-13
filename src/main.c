@@ -28,6 +28,10 @@ int should_exit;
 pthread_mutex_t mutex;
 int mutex_initialized;
 
+void menu_item_test() {
+    printf("Test! Hello!\n");
+}
+
 void menu_item_quit() {
     printf("Quitting...\n");
 
@@ -95,6 +99,7 @@ int init() {
     mutex_initialized = 1;
     menu = menu_create();
 
+    menu_add(menu, "Test", menu_item_test);
     menu_add(menu, "Quit", menu_item_quit);
 
     return 0;
