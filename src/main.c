@@ -38,7 +38,6 @@ void menu_item_quit() {
 
 int init() {
     struct rotary_encoder_pins pins;
-    struct hd44780_screen_config screen_config;
 
     hd44780_io_t* screen_io;
 
@@ -192,13 +191,10 @@ void* sample_thread(void* arg) {
 
 int render_menu() {
     const char** items;
-    uint8_t* name_lengths;
-
     size_t item_count, cursor;
     uint8_t width, height;
     size_t current_item;
     size_t name_len, max_name_len;
-    uint8_t selected_name_length;
 
     if (!hd44780_clear(screen)) {
         return 1;
@@ -207,7 +203,7 @@ int render_menu() {
     hd44780_get_size(screen, &width, &height);
 
     max_name_len = width - 1;
-    char name_buffer[max_name_len + 1];
+    char name_buffer[width + 1];
 
     pthread_mutex_lock(&mutex);
     item_count = menu_get_menu_items(menu, height, NULL, NULL);
@@ -216,14 +212,13 @@ int render_menu() {
     item_count = menu_get_menu_items(menu, height, items, &cursor);
     pthread_mutex_unlock(&mutex);
 
-    name_lengths = (uint8_t*)malloc(item_count * sizeof(uint8_t));
     for (current_item = 0; current_item < item_count; current_item++) {
         if (!hd44780_set_cursor_pos(screen, 0, (uint8_t)current_item)) {
             free(items);
-            free(name_lengths);
-
             return 1;
         }
+
+        memset(name_buffer, 0, (width + 1) * sizeof(char));
 
         name_len = strlen(items[current_item]);
         if (name_len <= max_name_len) {
@@ -239,25 +234,24 @@ int render_menu() {
             name_len = max_name_len;
         }
 
-        name_lengths[current_item] = (uint8_t)max_name_len;
+        if (current_item == cursor) {
+            // arrow character
+            name_buffer[name_len] = '\177';
+        }
+
         if (!hd44780_write(screen, name_buffer)) {
             free(items);
-            free(name_lengths);
-
             return 1;
         }
     }
 
-    selected_name_length = name_lengths[cursor];
-
     free(items);
-    free(name_lengths);
 
     pthread_mutex_lock(&mutex);
     redraw_menu = 0;
     pthread_mutex_unlock(&mutex);
 
-    return hd44780_set_cursor_pos(screen, selected_name_length, (uint8_t)cursor);
+    return 0;
 }
 
 void shutdown() {
