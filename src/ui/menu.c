@@ -1,4 +1,4 @@
-#include "core/menu.h"
+#include "ui/menu.h"
 
 #include "core/list.h"
 
@@ -7,12 +7,15 @@
 
 typedef struct menu_item {
     char* text;
-    menu_callback_t action;
+    menu_item_callback_t action;
 } menu_item_t;
 
 struct menu {
     list_t* items;
     list_node_t* current_item;
+
+    void* user_data;
+    menu_free_callback_t free_callback;
 };
 
 menu_t* menu_create() {
@@ -21,6 +24,9 @@ menu_t* menu_create() {
     menu = (menu_t*)malloc(sizeof(menu_t));
     menu->items = list_alloc();
     menu->current_item = NULL;
+
+    menu->user_data = NULL;
+    menu->free_callback = NULL;
 
     return menu;
 }
@@ -32,11 +38,24 @@ void menu_free(menu_t* menu) {
 
     menu_clear(menu);
 
+    if (menu->free_callback) {
+        menu->free_callback(menu->user_data);
+    }
+
     list_free(menu->items);
     free(menu);
 }
 
-void menu_add(menu_t* menu, const char* text, menu_callback_t action) {
+void menu_set_user_data(menu_t* menu, void* user_data, menu_free_callback_t free_callback) {
+    if (menu->free_callback) {
+        menu->free_callback(menu->user_data);
+    }
+
+    menu->user_data = user_data;
+    menu->free_callback = free_callback;
+}
+
+void menu_add(menu_t* menu, const char* text, menu_item_callback_t action) {
     menu_item_t* item;
     list_node_t* node;
 
@@ -158,5 +177,5 @@ void menu_select(menu_t* menu) {
     }
 
     item = (menu_item_t*)list_node_get(menu->current_item);
-    item->action();
+    item->action(menu->user_data);
 }

@@ -12,6 +12,7 @@ ARG BUILDARCH
 RUN scripts/buildenv.sh ${TARGETOS} ${TARGETARCH} ${BUILDARCH}
 
 COPY CMakeLists.txt .
+COPY vendor vendor
 COPY src src
 
 RUN scripts/build.sh ${TARGETOS} ${TARGETARCH}

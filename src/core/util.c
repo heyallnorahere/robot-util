@@ -14,6 +14,16 @@
 void util_sleep_us(uint32_t us) { usleep(us); }
 void util_sleep_ms(uint32_t ms) { util_sleep_us(ms * 1e3); }
 
+void util_time_diff(const struct timespec* t0, const struct timespec* t1, struct timespec* delta) {
+    delta->tv_sec = t1->tv_sec - t0->tv_sec;
+    delta->tv_nsec = t1->tv_nsec - t0->tv_nsec;
+
+    if (t1->tv_nsec < t0->tv_nsec) {
+        delta->tv_sec -= 1;
+        delta->tv_nsec += 1e9;
+    }
+}
+
 void util_set_bit_flag(uint8_t* dst, uint8_t flag, int enabled) {
     if (enabled) {
         *dst |= flag;

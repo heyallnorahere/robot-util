@@ -15,6 +15,8 @@ void config_default(struct robot_util_config* config) {
     config->encoder_pins.a = 17;
     config->encoder_pins.b = 27;
     config->encoder_pins.sw = 22;
+
+    config->update_url = NULL;
 }
 
 struct pin_mapping {
@@ -51,6 +53,7 @@ int config_deserialize_encoder_pins(const cJSON* json, struct rotary_encoder_pin
 int config_deserialize(const cJSON* json, struct robot_util_config* config) {
     const cJSON* node;
     const char* node_name;
+    size_t len;
 
     node_name = "lcd_address";
     node = cJSON_GetObjectItemCaseSensitive(json, node_name);
@@ -74,6 +77,18 @@ int config_deserialize(const cJSON* json, struct robot_util_config* config) {
 
     if (!config_deserialize_encoder_pins(node, &config->encoder_pins)) {
         return 0;
+    }
+
+    node_name = "update_url";
+    node = cJSON_GetObjectItemCaseSensitive(json, node_name);
+
+    if (node && cJSON_IsString(node)) {
+        len = strlen(node->valuestring);
+        config->update_url = (char*)malloc((len + 1) * sizeof(char));
+
+        strncpy(config->update_url, node->valuestring, len);
+    } else {
+        config->update_url = NULL;
     }
 
     return 1;
@@ -111,6 +126,14 @@ cJSON* config_serialize(const struct robot_util_config* config) {
 
     cJSON_AddNumberToObject(config_node, "lcd_address", config->lcd_address);
     cJSON_AddItemToObject(config_node, "encoder_pins", child);
+
+    if (config->update_url) {
+        child = cJSON_CreateString(config->update_url);
+    } else {
+        child = cJSON_CreateNull();
+    }
+
+    cJSON_AddItemToObject(config_node, "update_url", child);
 
     return config_node;
 }
@@ -199,4 +222,10 @@ int config_load_or_default(const char* path, struct robot_util_config* config) {
 
     config_default(config);
     return config_save(path, config);
+}
+
+void config_destroy(struct robot_util_config* config) {
+    if (config->update_url) {
+        free(config->update_url);
+    }
 }

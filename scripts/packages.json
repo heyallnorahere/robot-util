@@ -1,10 +1,12 @@
 {
     "build": [
         "libgpiod-dev",
-        "libcjson-dev"
+        "libcjson-dev",
+        "libcurl4-openssl-dev"
     ],
     "runtime": [
         "libgpiod2",
-        "libcjson1"
+        "libcjson1",
+        "libcurl4"
     ]
 }
