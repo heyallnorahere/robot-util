@@ -76,34 +76,18 @@ void* util_read_file(const char* path, size_t* size) {
 }
 
 ssize_t util_write_file(const char* path, const void* data, size_t size) {
+    static const mode_t file_mode = S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH;
     int fd;
 
-    int status, exists;
+    int status;
     struct stat file_stat;
 
     size_t bytes_remaining, offset;
     ssize_t bytes_written;
 
-    exists = 1;
-    status = stat(path, &file_stat);
-
-    if (status != 0) {
-        if (errno != ENOENT) {
-            perror("stat");
-            return -1;
-        } else {
-            exists = 0;
-        }
-    }
-
-    if (exists) {
-        fd = open(path, O_WRONLY);
-    } else {
-        fd = creat(path, S_IRWXU | S_IRWXG);
-    }
-
+    fd = open(path, O_WRONLY | O_CREAT, file_mode);
     if (fd < 0) {
-        perror(exists ? "open" : "creat");
+        perror("open");
         return -1;
     }
 

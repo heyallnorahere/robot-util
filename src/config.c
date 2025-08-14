@@ -151,7 +151,9 @@ int config_load(const char* path, struct robot_util_config* config) {
 int config_save(const char* path, const struct robot_util_config* config) {
     char* buffer;
     const char* error;
+
     cJSON* json;
+    size_t json_length;
 
     int status;
     ssize_t bytes_written;
@@ -179,10 +181,11 @@ int config_save(const char* path, const struct robot_util_config* config) {
     buffer = cJSON_Print(json);
     cJSON_Delete(json);
 
-    bytes_written = util_write_file(path, buffer, strlen(buffer) * sizeof(char));
-    cJSON_free(buffer);
+    json_length = strlen(buffer);
+    bytes_written = util_write_file(path, buffer, json_length * sizeof(char));
 
-    return bytes_written == strlen(buffer);
+    cJSON_free(buffer);
+    return bytes_written == json_length;
 }
 
 int config_load_or_default(const char* path, struct robot_util_config* config) {

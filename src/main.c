@@ -203,7 +203,7 @@ int render_menu() {
 
     hd44780_get_size(screen, &width, &height);
 
-    max_name_len = width - 1;
+    max_name_len = width - 2;
     char name_buffer[width + 1];
 
     pthread_mutex_lock(&mutex);
@@ -236,8 +236,8 @@ int render_menu() {
         }
 
         if (current_item == cursor) {
-            // arrow character
-            name_buffer[name_len] = '\177';
+            // space & arrow character
+            strncpy(name_buffer + name_len, " \177", width - name_len);
         }
 
         if (!hd44780_write(screen, name_buffer)) {
