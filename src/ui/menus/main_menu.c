@@ -6,6 +6,7 @@
 #include "core/config.h"
 
 #include <malloc.h>
+#include <string.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -53,6 +54,7 @@ void main_menu_update_robot(void* user_data) {
     headers = NULL;
 
     if (auth_token) {
+        memset(header_buffer, 0, (max_header_length + 1) * sizeof(char));
         snprintf(header_buffer, max_header_length, "Authorization: Bearer %s", auth_token);
         headers = curl_slist_append(headers, header_buffer);
 
