@@ -6,12 +6,12 @@
 
 #include <pthread.h>
 
-#include "gpio.h"
-#include "i2c.h"
-#include "util.h"
+#include "protocol/gpio.h"
+#include "protocol/i2c.h"
 
-#include "menu.h"
-#include "config.h"
+#include "core/util.h"
+#include "core/menu.h"
+#include "core/config.h"
 
 #include "devices/rotary_encoder.h"
 #include "devices/hd44780/screen.h"

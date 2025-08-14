@@ -1,6 +1,6 @@
-#include "menu.h"
+#include "core/menu.h"
 
-#include "list.h"
+#include "core/list.h"
 
 #include <malloc.h>
 #include <string.h>

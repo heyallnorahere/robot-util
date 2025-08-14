@@ -1,4 +1,4 @@
-#include "gpio.h"
+#include "protocol/gpio.h"
 
 #include <stdio.h>
 #include <malloc.h>

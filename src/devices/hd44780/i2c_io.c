@@ -1,7 +1,8 @@
-#include "screen.h"
+#include "devices/hd44780/screen.h"
 
-#include "../../i2c.h"
-#include "../../util.h"
+#include "protocol/i2c.h"
+
+#include "core/util.h"
 
 #include <malloc.h>
 

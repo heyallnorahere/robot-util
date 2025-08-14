@@ -1,6 +1,6 @@
-#include "config.h"
+#include "core/config.h"
 
-#include "util.h"
+#include "core/util.h"
 
 #include <cjson/cJSON.h>
 

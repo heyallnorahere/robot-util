@@ -1,6 +1,6 @@
-#include "screen.h"
+#include "devices/hd44780/screen.h"
 
-#include "../../util.h"
+#include "core/util.h"
 
 #include <string.h>
 #include <malloc.h>

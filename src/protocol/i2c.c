@@ -1,4 +1,6 @@
-#include "i2c.h"
+#include "protocol/i2c.h"
+
+#include "core/util.h"
 
 #include <malloc.h>
 #include <string.h>
@@ -8,8 +10,6 @@
 
 #include <linux/i2c-dev.h>
 #include <sys/ioctl.h>
-
-#include "util.h"
 
 #define DEVICE_PATH_LENGTH 19
 

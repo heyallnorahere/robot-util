@@ -1,6 +1,6 @@
-#include "rotary_encoder.h"
+#include "devices/rotary_encoder.h"
 
-#include "../gpio.h"
+#include "protocol/gpio.h"
 
 #include <malloc.h>
 #include <string.h>
