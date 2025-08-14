@@ -57,7 +57,7 @@ rotary_encoder_t* rotary_encoder_open(gpio_chip_t* chip, const struct rotary_enc
         return NULL;
     }
 
-    config.flags = GPIO_REQUEST_FLAG_ACTIVE_LOW;
+    config.flags = GPIO_REQUEST_FLAG_BIAS_PULL_UP;
 
     if (!gpio_set_pin_request(chip, 1, &pins->sw, &config)) {
         rotary_encoder_close(encoder);
@@ -110,6 +110,16 @@ int rotary_encoder_get_motion(rotary_encoder_t* encoder, int* motion) {
     return 1;
 }
 
+int rotary_encoder_get_pressed(rotary_encoder_t* encoder, int* pressed) {
+    int high;
+    if (!gpio_get_digital(encoder->chip, 1, &encoder->pins.sw, &high)) {
+        return 0;
+    }
+
+    *pressed = !high;
+    return 1;
+}
+
 int rotary_encoder_get(rotary_encoder_t* encoder, int* pressed, int* motion) {
     int success;
 
@@ -120,7 +130,7 @@ int rotary_encoder_get(rotary_encoder_t* encoder, int* pressed, int* motion) {
     }
 
     if (pressed) {
-        success &= gpio_get_digital(encoder->chip, 1, &encoder->pins.sw, pressed);
+        success &= rotary_encoder_get_pressed(encoder, pressed);
     }
 
     return success;

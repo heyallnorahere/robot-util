@@ -67,6 +67,8 @@ void app_destroy(app_t* app) {
     while ((current_node = list_end(app->menus)) != NULL) {
         menu = (menu_t*)list_node_get(current_node);
         menu_free(menu);
+
+        list_remove(app->menus, current_node);
     }
 
     if (app->screen) {
