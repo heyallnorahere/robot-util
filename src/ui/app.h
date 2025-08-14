@@ -17,7 +17,7 @@ void app_destroy(app_t* app);
 void app_update(app_t* app);
 
 // request app to exit
-void app_request_exit(app_t* app);
+void app_request_exit(app_t* app, int status);
 
 // should app exit?
 int app_should_exit(app_t* app);

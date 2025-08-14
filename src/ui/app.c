@@ -95,9 +95,9 @@ int app_sample_encoder(app_t* app, menu_t* top) {
 
     if (motion != 0) {
         if (motion > 0) {
-            printf("Moved cursor clockwise\n");
+            printf("Moved cursor down\n");
         } else {
-            printf("Moved cursor counter-clockwise\n");
+            printf("Moved cursor up\n");
         }
 
         menu_move_cursor(top, motion > 0);
@@ -240,9 +240,12 @@ void app_update(app_t* app) {
     }
 }
 
-void app_request_exit(app_t* app) { app->should_exit = 1; }
-int app_should_exit(app_t* app) { return app->should_exit; }
+void app_request_exit(app_t* app, int status) {
+    app->should_exit = 1;
+    app->status = status;
+}
 
+int app_should_exit(app_t* app) { return app->should_exit; }
 int app_get_status(app_t* app) { return app->status; }
 
 void app_push_menu(app_t* app, menu_t* menu) {
@@ -254,7 +257,7 @@ void app_push_menu(app_t* app, menu_t* menu) {
     app->should_redraw = 1;
 }
 
-void app_pop_menu(app_t *app) {
+void app_pop_menu(app_t* app) {
     list_node_t* end;
     menu_t* menu;
 

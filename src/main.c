@@ -1,5 +1,3 @@
-#include <stdio.h>
-
 #include "protocol/gpio.h"
 #include "protocol/i2c.h"
 
@@ -8,22 +6,22 @@
 #include "ui/menu.h"
 #include "ui/app.h"
 
+#include "ui/menus/menus.h"
+
 #include "devices/rotary_encoder.h"
 #include "devices/hd44780/screen.h"
 
-struct robot_util_config config;
+#include <malloc.h>
+
+#include <stdio.h>
+
+struct robot_util_config* config;
 
 gpio_chip_t* chip;
 i2c_bus_t* bus;
 i2c_device_t* device;
 
 app_t* app;
-
-void menu_item_quit(void* user_data) {
-    printf("Quitting...\n");
-
-    app_request_exit(app);
-}
 
 int init() {
     rotary_encoder_t* encoder;
@@ -33,22 +31,23 @@ int init() {
 
     menu_t* menu;
 
-    if (!config_load_or_default("config/util.json", &config)) {
-        return 1;
-    }
-
     chip = NULL;
     bus = NULL;
     device = NULL;
 
     app = NULL;
 
+    config = (struct robot_util_config*)malloc(sizeof(struct robot_util_config));
+    if (!config_load_or_default("config/util.json", config)) {
+        return 1;
+    }
+
     chip = gpio_chip_open("/dev/gpiochip0", "robot-util");
     if (!chip) {
         return 1;
     }
 
-    encoder = rotary_encoder_open(chip, &config.encoder_pins);
+    encoder = rotary_encoder_open(chip, &config->encoder_pins);
     if (!encoder) {
         return 1;
     }
@@ -59,7 +58,7 @@ int init() {
         return 1;
     }
 
-    device = i2c_device_open(bus, config.lcd_address);
+    device = i2c_device_open(bus, config->lcd_address);
     screen_io = hd44780_i2c_open(device);
     screen = hd44780_open_20x4(screen_io);
 
@@ -68,10 +67,9 @@ int init() {
         return 1;
     }
 
-    menu = menu_create();
-    menu_add(menu, "Quit", menu_item_quit);
-
+    menu = menus_main(config, &app);
     app = app_create(encoder, screen, menu);
+    config = NULL;
 
     return 0;
 }
@@ -85,7 +83,10 @@ void shutdown() {
     i2c_bus_close(bus);
     gpio_chip_close(chip);
 
-    config_destroy(&config);
+    if (config) {
+        config_destroy(config);
+        free(config);
+    }
 }
 
 int main(int argc, const char** argv) {
