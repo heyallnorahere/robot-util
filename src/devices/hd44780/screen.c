@@ -79,6 +79,7 @@ int hd44780_init(hd44780_t* screen) {
 
     memset(&config, 0, sizeof(struct hd44780_screen_config));
     config.display_on = 1;
+    config.backlight_on = 1;
     config.increment = 1;
 
     success = hd44780_apply_config(screen, &config);
@@ -214,6 +215,8 @@ int hd44780_send_config(hd44780_t* screen) {
 }
 
 int hd44780_apply_config(hd44780_t* screen, const struct hd44780_screen_config* config) {
+    int success;
+
     util_set_bit_flag(&screen->display_control, HD44780_DISPLAY_CONTROL_DISPLAY_ON,
                       config->display_on);
 
@@ -228,8 +231,18 @@ int hd44780_apply_config(hd44780_t* screen, const struct hd44780_screen_config* 
 
     util_set_bit_flag(&screen->display_mode, HD44780_DISPLAY_MODE_INCREMENT, config->increment);
 
+    screen->io->set_backlight(screen->io->user_data, config->backlight_on);
+
+    success = hd44780_send_config(screen);
+    if (!success) {
+        // revert
+        screen->io->set_backlight(screen->io->user_data, screen->current_config.backlight_on);
+
+        return 0;
+    }
+
     memcpy(&screen->current_config, config, sizeof(struct hd44780_screen_config));
-    return hd44780_send_config(screen);
+    return 1;
 }
 
 void hd44780_get_config(hd44780_t* screen, struct hd44780_screen_config* config) {

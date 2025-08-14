@@ -256,6 +256,16 @@ int render_menu() {
 }
 
 void shutdown() {
+    struct hd44780_screen_config config;
+
+    if (screen) {
+        hd44780_get_config(screen, &config);
+        config.backlight_on = 0;
+
+        hd44780_apply_config(screen, &config);
+        hd44780_clear(screen);
+    }
+
     menu_free(menu);
 
     if (mutex_initialized) {

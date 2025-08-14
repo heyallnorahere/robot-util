@@ -17,8 +17,8 @@ typedef struct hd44780_io {
     // must be implemented. returns 1 on success, 0 on failure
     int (*send_data)(void* user_data, const void* data, size_t size);
 
-    // can be null. returns 1 on success, 0 on failure
-    int (*set_backlight)(void* user_data, int backlight_on);
+    // can be null
+    void (*set_backlight)(void* user_data, int backlight_on);
 
     void* user_data;
 } hd44780_io_t;
@@ -38,6 +38,9 @@ struct hd44780_screen_config {
 
     // move the cursor on each character write
     int increment;
+
+    // turn on the LCD backlight
+    int backlight_on;
 };
 
 typedef struct hd44780 hd44780_t;

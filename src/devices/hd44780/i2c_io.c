@@ -81,13 +81,11 @@ int hd44780_i2c_send_data(void* user_data, const void* data, size_t size) {
     return 1;
 }
 
-int hd44780_i2c_set_backlight(void* user_data, int backlight_on) {
+void hd44780_i2c_set_backlight(void* user_data, int backlight_on) {
     hd44780_i2c_io_t* io;
 
     io = (hd44780_i2c_io_t*)user_data;
     io->backlight_on = backlight_on;
-
-    return hd44780_i2c_send_command(io, 0x00);
 }
 
 int hd44780_i2c_init(void* user_data) {
