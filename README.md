@@ -6,6 +6,8 @@ controllers, and updating of other Docker images.
 ## Building
 
 This project depends on the following libraries:
+- libcjson
+- libcurl
 - libgpiod 1.6.x - **libgpiod >= 2.0 has breaking changes**
 
 ```bash
