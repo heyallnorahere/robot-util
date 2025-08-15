@@ -30,6 +30,8 @@ void bluetooth_menu_refresh(void* user_data) {
     if (!menu) {
         fprintf(stderr, "Error while refreshing bluetooth device list\n");
     }
+
+    app_push_menu(app, menu);
 }
 
 void bluetooth_menu_free(void* user_data) {
@@ -37,7 +39,9 @@ void bluetooth_menu_free(void* user_data) {
 
     data = (struct bluetooth_menu*)user_data;
 
-    dbus_connection_close(data->connection);
+    if (data->connection) {
+        dbus_connection_unref(data->connection);
+    }
 
     free(data);
 }
@@ -52,10 +56,10 @@ menu_t* menus_bluetooth(app_t* app) {
     data->app = app;
 
     dbus_error_init(&error);
-    data->connection = dbus_connection_open("org.bluez", &error);
+    data->connection = dbus_bus_get(DBUS_BUS_SYSTEM, &error);
 
     if (!data->connection) {
-        fprintf(stderr, "Error opening dbus connection: %s\n", error.message);
+        fprintf(stderr, "Error opening system bus: %s\n", error.message);
 
         dbus_error_free(&error);
         bluetooth_menu_free(data);
