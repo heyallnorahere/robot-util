@@ -3,6 +3,8 @@
 C program to do various tasks aligned with robot maintenance and utility, such as the connection of
 controllers, and updating of other Docker images.
 
+Of course, this only builds on Linux.
+
 ## Building
 
 This project depends on the following libraries:

@@ -205,3 +205,26 @@ int util_mkdir_recursive(const char* pathname, mode_t mode) {
     free(buffer);
     return status;
 }
+
+size_t util_hash_string(const char *value, size_t capacity) {
+    static const size_t magic = 31;
+
+    size_t hash, factor;
+    size_t i;
+    char character;
+
+    hash = 0;
+    factor = magic;
+
+    for (i = 0; i < strlen(value); i++) {
+        character = value[i];
+
+        hash += ((size_t)character * factor) % capacity;
+        hash %= capacity;
+
+        factor *= magic;
+        factor %= __UINT32_MAX__;
+    }
+
+    return hash;
+}

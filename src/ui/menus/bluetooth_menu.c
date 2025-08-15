@@ -34,6 +34,13 @@ void bluetooth_menu_refresh(void* user_data) {
     app_push_menu(app, menu);
 }
 
+void bluetooth_menu_back(void* user_data) {
+    struct bluetooth_menu* data;
+
+    data = (struct bluetooth_menu*)user_data;
+    app_pop_menu(data->app);
+}
+
 void bluetooth_menu_free(void* user_data) {
     struct bluetooth_menu* data;
 
@@ -71,6 +78,8 @@ menu_t* menus_bluetooth(app_t* app) {
     menu_set_user_data(menu, data, bluetooth_menu_free);
 
     menu_add(menu, "Refresh", bluetooth_menu_refresh);
+
+    menu_add(menu, "Back", bluetooth_menu_back);
 
     dbus_error_free(&error);
     return menu;

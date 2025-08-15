@@ -269,5 +269,7 @@ void app_pop_menu(app_t* app) {
     menu = list_node_get(end);
     list_remove(app->menus, end);
 
+    app->should_redraw = 1;
+
     menu_free(menu);
 }

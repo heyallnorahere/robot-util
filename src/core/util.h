@@ -24,4 +24,6 @@ char* util_get_dirname(const char* path);
 // https://man7.org/linux/man-pages/man2/mkdir.2.html
 int util_mkdir_recursive(const char* pathname, mode_t mode);
 
+size_t util_hash_string(const char* value, size_t capacity);
+
 #endif
