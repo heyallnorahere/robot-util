@@ -75,6 +75,30 @@ void main_menu_update_robot(void* user_data) {
 
     curl_slist_free_all(headers);
     curl_easy_cleanup(curl);
+
+    printf("Request sent to update containers\n");
+}
+
+void main_menu_open_bluetooth(void* user_data) {
+    struct main_menu* data;
+    app_t* app;
+    menu_t* menu;
+
+    data = (struct main_menu*)user_data;
+    app = main_menu_get_app(data);
+
+    if (!app) {
+        fprintf(stderr, "No app attached to menu!");
+        return;
+    }
+
+    menu = menus_bluetooth(app);
+    if (!menu) {
+        fprintf(stderr, "Failed to open bluetooth menu!");
+        return;
+    }
+
+    app_push_menu(app, menu);
 }
 
 void main_menu_exit(void* user_data) {
@@ -117,6 +141,7 @@ menu_t* menus_main(struct robot_util_config* config, app_t* const* app) {
         menu_add(menu, "Update robot", main_menu_update_robot);
     }
 
+    menu_add(menu, "Bluetooth", main_menu_open_bluetooth);
     menu_add(menu, "Exit", main_menu_exit);
 
     return menu;

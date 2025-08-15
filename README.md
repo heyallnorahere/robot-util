@@ -9,6 +9,10 @@ This project depends on the following libraries:
 - libcjson
 - libcurl
 - libgpiod 1.6.x - **libgpiod >= 2.0 has breaking changes**
+- libbluetooth
+- libdbus-1
+
+`pkg-config` is also required for configuration.
 
 ```bash
 cmake . -B build
