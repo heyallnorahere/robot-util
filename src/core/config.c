@@ -2,7 +2,7 @@
 
 #include "core/util.h"
 
-#include <cjson/cJSON.h>
+#include <cJSON.h>
 
 #include <malloc.h>
 #include <string.h>
