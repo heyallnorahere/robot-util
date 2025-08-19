@@ -11,15 +11,6 @@
 
 #include <pthread.h>
 
-struct bluetooth_main_loop {
-    GMainLoop* glib_loop;
-
-    pthread_t loop_thread;
-    int thread_started;
-
-    int32_t references;
-};
-
 struct bluetooth {
     DBusConnection* connection;
 
@@ -30,66 +21,6 @@ struct bluetooth {
 struct bluetooth_agent {
     bluetooth_t* connection;
 };
-
-struct bluetooth_main_loop* bluetooth_loop = NULL;
-
-void* bluetooth_loop_run(void* arg) {
-    struct bluetooth_main_loop* loop;
-
-    loop = (struct bluetooth_main_loop*)arg;
-    g_main_loop_run(loop->glib_loop);
-
-    return NULL;
-}
-
-void bluetooth_loop_unref() {
-    if (!bluetooth_loop) {
-        return;
-    }
-
-    bluetooth_loop->references--;
-    if (bluetooth_loop->references > 0) {
-        return;
-    }
-
-    if (bluetooth_loop->glib_loop) {
-        g_main_loop_quit(bluetooth_loop->glib_loop);
-
-        if (bluetooth_loop->thread_started) {
-            pthread_join(bluetooth_loop->loop_thread, NULL);
-        }
-
-        g_main_loop_unref(bluetooth_loop->glib_loop);
-    }
-
-    free(bluetooth_loop);
-    bluetooth_loop = NULL;
-}
-
-int bluetooth_loop_ref() {
-    if (!bluetooth_loop) {
-        bluetooth_loop = (struct bluetooth_main_loop*)malloc(sizeof(struct bluetooth_main_loop));
-        bluetooth_loop->references = 0;
-        bluetooth_loop->thread_started = 0;
-
-        bluetooth_loop->glib_loop = g_main_loop_new(NULL, TRUE);
-        if (!bluetooth_loop->glib_loop) {
-            bluetooth_loop_unref();
-            return 0;
-        }
-
-        if (pthread_create(&bluetooth_loop->loop_thread, NULL, bluetooth_loop_run,
-                           bluetooth_loop)) {
-            bluetooth_loop_unref();
-            return 0;
-        }
-
-        bluetooth_loop->thread_started = 1;
-    }
-
-    bluetooth_loop->references++;
-    return 1;
-}
 
 bluetooth_t* bluetooth_connect() {
     bluetooth_t* bt;
