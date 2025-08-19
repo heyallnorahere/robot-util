@@ -4,7 +4,7 @@
 #include <stdint.h>
 
 // from dbus/dbus.h
-typedef struct DBusConnection DBusConnection;
+typedef struct _GDBusConnection GDBusConnection;
 
 typedef enum dbus_service_argument_direction {
     DBUS_SERVICE_ARGUMENT_IN,
@@ -67,7 +67,7 @@ typedef struct dbus_service dbus_service_t;
 int dbus_loop_ref();
 void dbus_loop_unref();
 
-dbus_service_t* dbus_service_register(DBusConnection* connection,
+dbus_service_t* dbus_service_register(GDBusConnection* connection,
                                       const struct dbus_service_spec* spec);
 
 void dbus_service_unregister(dbus_service_t* service);

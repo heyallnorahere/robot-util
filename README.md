@@ -12,7 +12,6 @@ This project depends on the following libraries:
 - libcurl
 - libgpiod 1.6.x - **libgpiod >= 2.0 has breaking changes**
 - libbluetooth
-- libdbus-1
 - libglib2.0
 
 `pkg-config` is also required for configuration.

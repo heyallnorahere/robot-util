@@ -16,7 +16,7 @@ struct dbus_main_loop {
 };
 
 struct dbus_service {
-    DBusConnection* connection;
+    GDBusConnection* connection;
 
     char* introspection;
 };
@@ -80,7 +80,7 @@ void dbus_loop_unref() {
     dbus_loop = NULL;
 }
 
-dbus_service_t* dbus_service_register(DBusConnection* connection,
+dbus_service_t* dbus_service_register(GDBusConnection* connection,
                                       const struct dbus_service_spec* spec) {
     dbus_service_t* service;
 
@@ -89,8 +89,29 @@ dbus_service_t* dbus_service_register(DBusConnection* connection,
     }
 
     service = (dbus_service_t*)malloc(sizeof(dbus_service_t));
+
+    service->connection = connection;
+    g_object_ref(connection);
+
+    // todo: generate introspection XML
+    service->introspection = NULL;
+
+    // todo: register
+
+    return service;
 }
 
-void dbus_service_unregister(dbus_service_t* service);
+void dbus_service_unregister(dbus_service_t* service) {
+    if (!service) {
+        return;
+    }
 
-const char* dbus_service_introspect(dbus_service_t* service);
+    // todo: unregister service
+
+    g_object_unref(service->connection);
+
+    free(service->introspection);
+    free(service);
+}
+
+const char* dbus_service_introspect(dbus_service_t* service) { return service->introspection; }
