@@ -150,18 +150,20 @@ char* app_build_menu_render_data(menu_t* menu, uint32_t width, uint32_t height,
             strncpy(line_buffer, items[current_item], line_len);
         } else {
             char temp_name_buffer[line_len + 1];
+            memset(temp_name_buffer, 0, sizeof(temp_name_buffer));
+
             strncpy(temp_name_buffer, items[current_item], line_len);
 
             // -3 to allow for elipses
             temp_name_buffer[max_name_len - 3] = '\0';
-            snprintf(line_buffer, max_name_len, "%s...", temp_name_buffer);
+            snprintf(line_buffer, max_name_len + 1, "%s...", temp_name_buffer);
 
             line_len = max_name_len;
         }
 
         // space & cursor character
         if (current_item == cursor) {
-            snprintf(line_buffer + line_len, width - line_len, " %c", cursor_character);
+            snprintf(line_buffer + line_len, width - line_len + 1, " %c", cursor_character);
             line_len += 2;
         }
 

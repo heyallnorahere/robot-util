@@ -8,6 +8,9 @@
 typedef struct menu_item {
     char* text;
     menu_item_callback_t action;
+
+    void* user_data;
+    menu_item_callback_t  free_callback;
 } menu_item_t;
 
 struct menu {
@@ -55,13 +58,17 @@ void menu_set_user_data(menu_t* menu, void* user_data, menu_free_callback_t free
     menu->free_callback = free_callback;
 }
 
-void menu_add(menu_t* menu, const char* text, menu_item_callback_t action) {
+void menu_add(menu_t* menu, const char* text, menu_item_callback_t action, void* user_data,
+              menu_item_callback_t free_callback) {
     menu_item_t* item;
     list_node_t* node;
 
     item = (menu_item_t*)malloc(sizeof(menu_item_t));
     item->text = strdup(text);
     item->action = action;
+
+    item->user_data = user_data;
+    item->free_callback = free_callback;
 
     node = list_insert(menu->items, list_end(menu->items), item);
     if (!menu->current_item) {
@@ -76,6 +83,10 @@ void menu_clear(menu_t* menu) {
     current_node = list_begin(menu->items);
     do {
         item = (menu_item_t*)list_node_get(current_node);
+
+        if (item->free_callback) {
+            item->free_callback(menu->user_data, item->user_data);
+        }
 
         free(item->text);
         free(item);
@@ -177,5 +188,5 @@ void menu_select(menu_t* menu) {
     }
 
     item = (menu_item_t*)list_node_get(menu->current_item);
-    item->action(menu->user_data);
+    item->action(menu->user_data, item->user_data);
 }

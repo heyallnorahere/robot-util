@@ -22,7 +22,7 @@ struct main_menu {
     bluetooth_t* bluetooth_client;
 };
 
-void main_menu_update_robot(void* user_data) {
+void main_menu_update_robot(void* user_data, void* item_data) {
     static const size_t max_header_length = 255;
 
     CURL* curl;
@@ -75,12 +75,12 @@ void main_menu_update_robot(void* user_data) {
     printf("Request sent to update containers\n");
 }
 
-void main_menu_open_bluetooth(void* user_data) {
+void main_menu_open_bluetooth(void* user_data, void* item_data) {
     struct main_menu* data;
     menu_t* menu;
 
     data = (struct main_menu*)user_data;
-    menu = menus_bluetooth(data->app);
+    menu = menus_bluetooth(data->bluetooth_client, data->app);
     if (!menu) {
         fprintf(stderr, "Failed to open bluetooth menu!");
         return;
@@ -89,7 +89,7 @@ void main_menu_open_bluetooth(void* user_data) {
     app_push_menu(data->app, menu);
 }
 
-void main_menu_exit(void* user_data) {
+void main_menu_exit(void* user_data, void* item_data) {
     struct main_menu* data;
 
     data = (struct main_menu*)user_data;
@@ -124,11 +124,11 @@ menu_t* menus_main(const struct robot_util_config* config, app_t* app) {
     menu_set_user_data(menu, data, free_main_menu);
 
     if (config->update_url) {
-        menu_add(menu, "Update robot", main_menu_update_robot);
+        menu_add(menu, "Update robot", main_menu_update_robot, NULL, NULL);
     }
 
-    menu_add(menu, "Bluetooth", main_menu_open_bluetooth);
-    menu_add(menu, "Exit", main_menu_exit);
+    menu_add(menu, "Bluetooth", main_menu_open_bluetooth, NULL, NULL);
+    menu_add(menu, "Exit", main_menu_exit, NULL, NULL);
 
     return menu;
 }

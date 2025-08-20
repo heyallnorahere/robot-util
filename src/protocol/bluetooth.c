@@ -352,6 +352,47 @@ void bluetooth_disconnect(bluetooth_t* bt) {
     dbus_loop_unref();
 }
 
+struct bluetooth_device_iteration {
+    uint32_t count;
+    list_t* devices;
+};
+
+void bluetooth_map_iterate_devices(void* key, void* value, void* user_data) {
+    struct bluetooth_device_iteration* iteration;
+
+    iteration = (struct bluetooth_device_iteration*)user_data;
+    iteration->count++;
+
+    list_insert(iteration->devices, list_end(iteration->devices), value);
+}
+
+bluetooth_device_t** bluetooth_iterate_devices(bluetooth_t* bt, uint32_t* count) {
+    struct bluetooth_device_iteration iteration;
+
+    bluetooth_device_t** device_array;
+    list_node_t* current_node;
+    size_t index;
+
+    iteration.count = 0;
+    iteration.devices = list_alloc();
+
+    map_iterate(bt->devices, bluetooth_map_iterate_devices, &iteration);
+
+    device_array = (bluetooth_device_t**)malloc(iteration.count * sizeof(void*));
+    *count = iteration.count;
+
+    index = 0;
+    for (current_node = list_begin(iteration.devices); current_node != NULL;
+         current_node = list_node_next(current_node)) {
+        device_array[index++] = (bluetooth_device_t*)list_node_get(current_node);
+    }
+
+    return device_array;
+}
+
+const char* bluetooth_device_get_name(bluetooth_device_t* device) { return device->name; }
+const char* bluetooth_device_get_address(bluetooth_device_t* device) { return device->address; }
+
 bluetooth_agent_t* bluetooth_agent_create(bluetooth_t* connection, const char* path) {
     bluetooth_agent_t* agent;
 
