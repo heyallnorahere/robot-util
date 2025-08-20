@@ -10,11 +10,13 @@
 #include <sys/stat.h>
 
 void config_default(struct robot_util_config* config) {
-    config->lcd_address = 0x27;
+    config->backend_name = NULL;
 
     config->encoder_pins.a = 17;
     config->encoder_pins.b = 27;
     config->encoder_pins.sw = 22;
+
+    config->lcd_address = 0x27;
 
     config->update_url = NULL;
 }
@@ -53,7 +55,15 @@ int config_deserialize_encoder_pins(const cJSON* json, struct rotary_encoder_pin
 int config_deserialize(const cJSON* json, struct robot_util_config* config) {
     const cJSON* node;
     const char* node_name;
-    size_t len;
+
+    node_name = "backend_name";
+    node = cJSON_GetObjectItemCaseSensitive(json, node_name);
+
+    if (node && cJSON_IsString(node)) {
+        config->backend_name = strdup(node->valuestring);
+    } else {
+        config->backend_name = NULL;
+    }
 
     node_name = "lcd_address";
     node = cJSON_GetObjectItemCaseSensitive(json, node_name);
@@ -83,10 +93,7 @@ int config_deserialize(const cJSON* json, struct robot_util_config* config) {
     node = cJSON_GetObjectItemCaseSensitive(json, node_name);
 
     if (node && cJSON_IsString(node)) {
-        len = strlen(node->valuestring);
-        config->update_url = (char*)malloc((len + 1) * sizeof(char));
-
-        strncpy(config->update_url, node->valuestring, len);
+        config->update_url = strdup(node->valuestring);
     } else {
         config->update_url = NULL;
     }
@@ -117,6 +124,14 @@ cJSON* config_serialize(const struct robot_util_config* config) {
     if (!config_node) {
         return NULL;
     }
+
+    if (config->backend_name) {
+        child = cJSON_CreateString(config->backend_name);
+    } else {
+        child = cJSON_CreateNull();
+    }
+
+    cJSON_AddItemToObject(config_node, "backend_name", child);
 
     child = config_serialize_encoder_pins(&config->encoder_pins);
     if (!child) {
@@ -225,7 +240,6 @@ int config_load_or_default(const char* path, struct robot_util_config* config) {
 }
 
 void config_destroy(struct robot_util_config* config) {
-    if (config->update_url) {
-        free(config->update_url);
-    }
+    free(config->backend_name);
+    free(config->update_url);
 }

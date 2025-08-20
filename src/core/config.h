@@ -6,6 +6,8 @@
 #include <stdint.h>
 
 struct robot_util_config {
+    char* backend_name;
+
     struct rotary_encoder_pins encoder_pins;
     uint16_t lcd_address;
 

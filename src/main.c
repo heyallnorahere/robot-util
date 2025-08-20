@@ -42,34 +42,12 @@ int init() {
         return 1;
     }
 
-    chip = gpio_chip_open("/dev/gpiochip0", "robot-util");
-    if (!chip) {
-        return 1;
-    }
-
-    encoder = rotary_encoder_open(chip, &config->encoder_pins);
-    if (!encoder) {
-        return 1;
-    }
-
-    bus = i2c_bus_open(1, NULL);
-    if (!bus) {
-        rotary_encoder_close(encoder);
-        return 1;
-    }
-
-    device = i2c_device_open(bus, config->lcd_address);
-    screen_io = hd44780_i2c_open(device);
-    screen = hd44780_open_20x4(screen_io);
-
-    if (!screen) {
-        rotary_encoder_close(encoder);
-        return 1;
-    }
-
-    menu = menus_main(config, &app);
-    app = app_create(encoder, screen, menu);
+    app = app_create(config);
     config = NULL;
+
+    if (!app) {
+        return 1;
+    }
 
     return 0;
 }

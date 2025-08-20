@@ -10,6 +10,7 @@
 #include <malloc.h>
 #include <string.h>
 
+#include <glib.h>
 #include <gio/gio.h>
 
 #include <pthread.h>
@@ -72,7 +73,7 @@ void bluetooth_device_free(bluetooth_t* bt, const char* path) {
 void bluetooth_device_alloc(bluetooth_t* bt, const char* path, GDBusInterfaceInfo* interface_info) {
     bluetooth_device_t* device;
 
-    GVariant* variant;
+    GVariant* property_value;
     const gchar* string;
 
     GError* error;
@@ -94,15 +95,47 @@ void bluetooth_device_alloc(bluetooth_t* bt, const char* path, GDBusInterfaceInf
         return;
     }
 
-    device->path = strdup(path);
-
     interface_name = g_variant_new_string(DEVICE_INTERFACE_NAME);
     arguments = g_variant_new_tuple(&interface_name, 1);
 
     error = NULL;
-    g_dbus_connection_call_sync(bt->connection, BLUEZ_BUS_NAME, path,
-                                "org.freedesktop.DBus.Properties", "GetAll", NULL, NULL, 0, 0, NULL,
-                                &error);
+    device->properties = g_dbus_connection_call_sync(bt->connection, BLUEZ_BUS_NAME, path,
+                                                     "org.freedesktop.DBus.Properties", "GetAll",
+                                                     NULL, NULL, 0, 0, NULL, &error);
+
+    if (!device->properties) {
+        fprintf(stderr, "Failed to fetch properties for bluetooth device at DBus path %s: %s\n",
+                path, error->message);
+
+        g_object_unref(device->proxy);
+        free(device);
+
+        return;
+    }
+
+    property_value = g_variant_lookup_value(device->properties, "Address", NULL);
+    if (property_value) {
+        string = g_variant_get_string(property_value, NULL);
+        device->address = strdup(string);
+
+        g_variant_unref(property_value);
+    } else {
+        fprintf(stderr, "Warning: no address for bluetooth device at DBus path: %s\n", path);
+        device->address = NULL;
+    }
+
+    property_value = g_variant_lookup_value(device->properties, "Name", NULL);
+    if (property_value) {
+        string = g_variant_get_string(property_value, NULL);
+        device->name = strdup(string);
+
+        g_variant_unref(property_value);
+    } else {
+        fprintf(stderr, "Warning: no name for bluetooth device at DBus path: %s\n", path);
+        device->name = NULL;
+    }
+
+    device->path = strdup(path);
 
     bluetooth_device_free(bt, device->path);
     map_insert(bt->devices, device->path, device);

@@ -1,14 +1,36 @@
 #ifndef APP_H
 #define APP_H
 
-typedef struct rotary_encoder rotary_encoder_t;
-typedef struct hd44780 hd44780_t;
+#include <stdint.h>
 
-typedef struct app app_t;
+// from core/config.h
+struct robot_util_config;
+
+// from ui/menu.h
 typedef struct menu menu_t;
 
-// initializes a UI application. assumes ownership of encoder, screen, and menu
-app_t* app_create(rotary_encoder_t* encoder, hd44780_t* screen, menu_t* main_menu);
+typedef struct app app_t;
+
+typedef struct app_backend {
+    void* data;
+
+    // can be null. called on app_destroy
+    void (*backend_destroy)(void* data);
+
+    // can be null. update io. self-regulates ticks per second
+    void (*backend_update)(void* data, app_t* app);
+
+    // can be null. clear screen render data to it. each line is passed as multiple NUL-terminated
+    // string laid out in sequence. the end of the data is denoted as an extra NUL character.
+    void (*backend_render)(void* data, app_t* app, const char* render_data);
+
+    // can only be null if backend_render is null. returns the size of the screen in characters via
+    // width and height pointers. width and height can both be null, but not at the same time.
+    void (*backend_get_screen_size)(void* data, uint32_t* width, uint32_t* height);
+} app_backend_t;
+
+// initializes a UI application. assumes ownership of config.
+app_t* app_create(struct robot_util_config* config);
 
 // destroys the application
 void app_destroy(app_t* app);
@@ -30,5 +52,11 @@ void app_push_menu(app_t* app, menu_t* menu);
 
 // pop menu from stack. frees menu. returns 1 on success, 0 on failure
 void app_pop_menu(app_t* app);
+
+// move the current menu's cursor
+void app_move_cursor(app_t* app, int32_t increment);
+
+// select the hovered menu item
+void app_select(app_t* app);
 
 #endif

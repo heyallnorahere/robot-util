@@ -14,6 +14,7 @@ pkg_check_modules(CJSON REQUIRED libcjson)
 pkg_check_modules(CURL REQUIRED libcurl)
 pkg_check_modules(GLIB REQUIRED glib-2.0)
 pkg_check_modules(GIO REQUIRED gio-2.0)
+pkg_check_modules(CURSES REQUIRED ncurses)
 
 target_link_libraries(utillib PUBLIC
     ${GPIOD_LIBRARIES}
@@ -21,6 +22,7 @@ target_link_libraries(utillib PUBLIC
     ${CJSON_LIBRARIES}
     ${GLIB_LIBRARIES}
     ${GIO_LIBRARIES}
+    ${CURSES_LIBRARIES}
     pthread)
 
 target_include_directories(utillib PUBLIC
@@ -29,6 +31,7 @@ target_include_directories(utillib PUBLIC
     ${CURL_INCLUDE_DIRS}
     ${CJSON_INCLUDE_DIRS}
     ${GLIB_INCLUDE_DIRS}
-    ${GIO_INCLUDE_DIRS})
+    ${GIO_INCLUDE_DIRS}
+    ${CURSES_INCLUDE_DIRS})
 
 target_link_libraries(robot-util PRIVATE utillib)

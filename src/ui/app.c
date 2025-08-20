@@ -3,19 +3,24 @@
 #include "core/list.h"
 #include "core/util.h"
 
-#include "devices/rotary_encoder.h"
-#include "devices/hd44780/screen.h"
+#include "core/config.h"
 
 #include "ui/menu.h"
+#include "ui/menus/menus.h"
+#include "ui/backends/backends.h"
 
 #include <malloc.h>
 #include <string.h>
 
 #include <time.h>
 
+#define EMBEDDED_BACKEND_NAME "embedded"
+#define CURSES_BACKEND_NAME "curses"
+
 struct app {
-    rotary_encoder_t* encoder;
-    hd44780_t* screen;
+    struct robot_util_config* config;
+
+    app_backend_t* backend;
 
     list_t* menus;
     int should_redraw;
@@ -26,12 +31,42 @@ struct app {
     int button_pressed;
 };
 
-app_t* app_create(rotary_encoder_t* encoder, hd44780_t* screen, menu_t* menu) {
+void app_backend_create(app_t* app) {
+    const char* backend_name;
+    app_backend_t* backend;
+
+    backend_name = app->config->backend_name;
+    if (!backend_name) {
+        backend_name = EMBEDDED_BACKEND_NAME;
+    }
+
+    if (!strcmp(backend_name, EMBEDDED_BACKEND_NAME)) {
+        app->backend = app_backend_embedded(app->config);
+    } else if (!strcmp(backend_name, CURSES_BACKEND_NAME)) {
+        app->backend = app_backend_curses();
+    } else {
+        fprintf(stderr, "Invalid backend name: %s\n", backend_name);
+        app->backend = NULL;
+    }
+}
+
+app_t* app_create(struct robot_util_config* config) {
     app_t* app;
+    menu_t* menu;
 
     app = (app_t*)malloc(sizeof(app_t));
-    app->encoder = encoder;
-    app->screen = screen;
+    app->config = config;
+
+    app->menus = NULL;
+    app->backend = NULL;
+
+    app_backend_create(app);
+    if (!app->backend) {
+        fprintf(stderr, "Failed to create UI backend!\n");
+
+        app_destroy(app);
+        return NULL;
+    }
 
     app->menus = list_alloc();
     app->should_redraw = 1;
@@ -39,21 +74,16 @@ app_t* app_create(rotary_encoder_t* encoder, hd44780_t* screen, menu_t* menu) {
     app->should_exit = 0;
     app->status = 0;
 
-    app_push_menu(app, menu);
-    return app;
-}
+    menu = menus_main(config, app);
+    if (!menu) {
+        fprintf(stderr, "Failed to push main menu!\n");
 
-int app_dim_screen(hd44780_t* screen) {
-    struct hd44780_screen_config screen_config;
-
-    hd44780_get_config(screen, &screen_config);
-    screen_config.backlight_on = 0;
-
-    if (!hd44780_apply_config(screen, &screen_config)) {
-        return 0;
+        app_destroy(app);
+        return NULL;
     }
 
-    return hd44780_clear(screen);
+    app_push_menu(app, menu);
+    return app;
 }
 
 void app_destroy(app_t* app) {
@@ -64,116 +94,112 @@ void app_destroy(app_t* app) {
         return;
     }
 
-    while ((current_node = list_end(app->menus)) != NULL) {
-        menu = (menu_t*)list_node_get(current_node);
-        menu_free(menu);
+    if (app->menus) {
+        while ((current_node = list_end(app->menus)) != NULL) {
+            menu = (menu_t*)list_node_get(current_node);
+            menu_free(menu);
 
-        list_remove(app->menus, current_node);
+            list_remove(app->menus, current_node);
+        }
+
+        list_free(app->menus);
     }
 
-    if (app->screen) {
-        // we dont care about the return value. were shutting down
-        app_dim_screen(app->screen);
-    }
+    if (app->backend) {
+        if (app->backend->backend_destroy) {
+            app->backend->backend_destroy(app->backend->data);
+        }
 
-    hd44780_close(app->screen);
-    rotary_encoder_close(app->encoder);
+        free(app->backend);
+    }
 
     free(app);
 }
 
-int app_sample_encoder(app_t* app, menu_t* top) {
-    const char* menu_item_name;
-
-    int success;
-    int pressed, motion;
-
-    success = rotary_encoder_get(app->encoder, &pressed, &motion);
-    if (!success) {
-        return 0;
-    }
-
-    if (motion != 0) {
-        if (motion > 0) {
-            printf("Moved cursor down\n");
-        } else {
-            printf("Moved cursor up\n");
-        }
-
-        menu_move_cursor(top, motion > 0);
-        app->should_redraw = 1;
-    }
-
-    // trigger on release
-    if (!pressed && app->button_pressed) {
-        menu_item_name = menu_get_current_item_name(top);
-        printf("Selected menu item: %s\n", menu_item_name ? menu_item_name : "<null>");
-
-        menu_select(top);
-    }
-
-    app->button_pressed = pressed;
-    return 1;
-}
-
-int app_render_menu(app_t* app, menu_t* top) {
+char* app_build_menu_render_data(menu_t* menu, uint32_t width, uint32_t height) {
     const char** items;
     size_t item_count, cursor;
-    uint8_t width, height;
     size_t current_item;
-    size_t name_len, max_name_len;
+    size_t line_len, max_name_len;
 
-    if (!hd44780_clear(app->screen)) {
-        return 0;
-    }
+    list_t* lines;
+    list_node_t* current_line;
+    char* current_line_data;
 
-    hd44780_get_size(app->screen, &width, &height);
+    size_t render_data_offset;
+    size_t total_characters, render_data_size;
+    char* render_data;
 
     max_name_len = width - 2;
-    char name_buffer[width + 1];
+    char line_buffer[width + 1];
 
-    item_count = menu_get_menu_items(top, height, NULL, NULL);
+    item_count = menu_get_menu_items(menu, height, NULL, NULL);
 
     items = (const char**)malloc(item_count * sizeof(void*));
-    item_count = menu_get_menu_items(top, height, items, &cursor);
+    item_count = menu_get_menu_items(menu, height, items, &cursor);
+
+    lines = list_alloc();
+    total_characters = 0;
 
     for (current_item = 0; current_item < item_count; current_item++) {
-        if (!hd44780_set_cursor_pos(app->screen, 0, (uint8_t)current_item)) {
-            free(items);
-            return 0;
-        }
+        memset(line_buffer, 0, (width + 1) * sizeof(char));
 
-        memset(name_buffer, 0, (width + 1) * sizeof(char));
-
-        name_len = strlen(items[current_item]);
-        if (name_len <= max_name_len) {
-            strncpy(name_buffer, items[current_item], name_len);
+        line_len = strlen(items[current_item]);
+        if (line_len <= max_name_len) {
+            strncpy(line_buffer, items[current_item], line_len);
         } else {
-            char temp_name_buffer[name_len + 1];
-            strncpy(temp_name_buffer, items[current_item], name_len);
+            char temp_name_buffer[line_len + 1];
+            strncpy(temp_name_buffer, items[current_item], line_len);
 
             // -3 to allow for elipses
             temp_name_buffer[max_name_len - 3] = '\0';
-            snprintf(name_buffer, max_name_len, "%s...", temp_name_buffer);
+            snprintf(line_buffer, max_name_len, "%s...", temp_name_buffer);
 
-            name_len = max_name_len;
+            line_len = max_name_len;
         }
 
+        // space & arrow character
         if (current_item == cursor) {
-            // space & arrow character
-            strncpy(name_buffer + name_len, " \177", width - name_len);
+            strncpy(line_buffer + line_len, " \177", width - line_len);
+            line_len += 2;
         }
 
-        if (!hd44780_write(app->screen, name_buffer)) {
-            free(items);
-            return 0;
-        }
+        list_insert(lines, list_end(lines), strdup(line_buffer));
+        total_characters += line_len + 1;
     }
 
     free(items);
 
-    app->should_redraw = 0;
-    return 1;
+    render_data_size = (total_characters + 1) * sizeof(char);
+    render_data = (char*)malloc(render_data_size);
+    memset(render_data, 0, render_data_size);
+
+    render_data_offset = 0;
+    for (current_line = list_begin(lines); current_line != NULL;
+         current_line = list_node_next(current_line)) {
+        current_line_data = (char*)list_node_get(current_line);
+        strncpy(render_data + render_data_offset, current_line_data,
+                total_characters - render_data_offset);
+
+        render_data_offset += strlen(current_line_data) + 1;
+    }
+
+    return render_data;
+}
+
+void app_render_menu(app_t* app, menu_t* top) {
+    uint32_t width, height;
+    char* render_data;
+
+    if (!app->backend->backend_render) {
+        return;
+    }
+
+    app->backend->backend_get_screen_size(app->backend->data, &width, &height);
+    render_data = app_build_menu_render_data(top, width, height);
+
+    app->backend->backend_render(app->backend->data, app, render_data);
+    free(render_data);
 }
 
 menu_t* app_get_top(app_t* app) {
@@ -188,7 +214,6 @@ menu_t* app_get_top(app_t* app) {
 }
 
 void app_update_menus(app_t* app) {
-    int success;
     menu_t* top;
 
     top = app_get_top(app);
@@ -198,22 +223,23 @@ void app_update_menus(app_t* app) {
         return;
     }
 
-    success = app_sample_encoder(app, top);
-    if (success) {
-        top = app_get_top(app);
-        if (!top) {
-            app->should_exit = 1;
-            return;
-        }
+    if (app->backend->backend_update) {
+        app->backend->backend_update(app->backend->data, app);
 
-        if (app->should_redraw) {
-            success = app_render_menu(app, top);
+        if (app->should_exit) {
+            return;
         }
     }
 
-    if (!success) {
-        app->status = 1;
+    top = app_get_top(app);
+    if (!top) {
         app->should_exit = 1;
+        return;
+    }
+
+    if (app->should_redraw) {
+        app_render_menu(app, top);
+        app->should_redraw = 0;
     }
 }
 
@@ -272,4 +298,35 @@ void app_pop_menu(app_t* app) {
     app->should_redraw = 1;
 
     menu_free(menu);
+}
+
+void app_move_cursor(app_t* app, int32_t increment) {
+    menu_t* top;
+    int32_t i, count;
+    int clockwise;
+
+    top = app_get_top(app);
+    if (!top) {
+        return;
+    }
+
+    clockwise = increment > 0;
+    count = increment < 0 ? -increment : increment;
+
+    for (i = 0; i < count; i++) {
+        menu_move_cursor(top, clockwise);
+    }
+
+    app->should_redraw |= increment != 0;
+}
+
+void app_select(app_t* app) {
+    menu_t* top;
+
+    top = app_get_top(app);
+    if (!top) {
+        return;
+    }
+
+    menu_select(top);
 }
