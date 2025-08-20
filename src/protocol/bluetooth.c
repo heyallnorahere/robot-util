@@ -147,7 +147,6 @@ void bluetooth_device_alloc(bluetooth_t* bt, const char* path, GDBusInterfaceInf
 
         g_variant_unref(property_value);
     } else {
-        fprintf(stderr, "Warning: no address for bluetooth device at DBus path: %s\n", path);
         device->address = NULL;
     }
 
@@ -158,7 +157,6 @@ void bluetooth_device_alloc(bluetooth_t* bt, const char* path, GDBusInterfaceInf
 
         g_variant_unref(property_value);
     } else {
-        fprintf(stderr, "Warning: no name for bluetooth device at DBus path: %s\n", path);
         device->name = NULL;
     }
 

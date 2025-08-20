@@ -116,7 +116,8 @@ void app_destroy(app_t* app) {
     free(app);
 }
 
-char* app_build_menu_render_data(menu_t* menu, uint32_t width, uint32_t height) {
+char* app_build_menu_render_data(menu_t* menu, uint32_t width, uint32_t height,
+                                 char cursor_character) {
     const char** items;
     size_t item_count, cursor;
     size_t current_item;
@@ -158,9 +159,9 @@ char* app_build_menu_render_data(menu_t* menu, uint32_t width, uint32_t height) 
             line_len = max_name_len;
         }
 
-        // space & arrow character
+        // space & cursor character
         if (current_item == cursor) {
-            strncpy(line_buffer + line_len, " \177", width - line_len);
+            snprintf(line_buffer + line_len, width - line_len, " %c", cursor_character);
             line_len += 2;
         }
 
@@ -189,14 +190,20 @@ char* app_build_menu_render_data(menu_t* menu, uint32_t width, uint32_t height) 
 
 void app_render_menu(app_t* app, menu_t* top) {
     uint32_t width, height;
+    char cursor_character;
     char* render_data;
 
     if (!app->backend->backend_render) {
         return;
     }
 
+    if (!app->backend->backend_get_cursor_character ||
+        !app->backend->backend_get_cursor_character(app->backend->data, &cursor_character)) {
+        cursor_character = '<';
+    }
+
     app->backend->backend_get_screen_size(app->backend->data, &width, &height);
-    render_data = app_build_menu_render_data(top, width, height);
+    render_data = app_build_menu_render_data(top, width, height, cursor_character);
 
     app->backend->backend_render(app->backend->data, app, render_data);
     free(render_data);

@@ -164,6 +164,13 @@ void embedded_backend_get_screen_size(void* data, uint32_t* width, uint32_t* hei
     }
 }
 
+int embedded_backend_get_cursor_character(void* data, char* cursor_character) {
+    // appears as a left arrow on the HD44780
+    *cursor_character = '\177';
+
+    return 1;
+}
+
 app_backend_t* app_backend_embedded(const struct robot_util_config* config) {
     struct embedded_backend_data* data;
     app_backend_t* backend;
@@ -216,6 +223,7 @@ app_backend_t* app_backend_embedded(const struct robot_util_config* config) {
     backend->backend_update = embedded_backend_update;
     backend->backend_render = embedded_backend_render;
     backend->backend_get_screen_size = embedded_backend_get_screen_size;
+    backend->backend_get_cursor_character = embedded_backend_get_cursor_character;
 
     return backend;
 }

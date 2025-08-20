@@ -27,6 +27,9 @@ typedef struct app_backend {
     // can only be null if backend_render is null. returns the size of the screen in characters via
     // width and height pointers. width and height can both be null, but not at the same time.
     void (*backend_get_screen_size)(void* data, uint32_t* width, uint32_t* height);
+
+    // can be null. return 1 if cursor_character was set
+    int (*backend_get_cursor_character)(void* data, char* cursor_character);
 } app_backend_t;
 
 // initializes a UI application. assumes ownership of config.
