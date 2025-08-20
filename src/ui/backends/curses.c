@@ -97,6 +97,7 @@ app_backend_t* app_backend_curses() {
     intrflush(stdscr, FALSE);
     keypad(stdscr, TRUE);
     nodelay(stdscr, TRUE);
+    curs_set(0);
 
     backend = (app_backend_t*)malloc(sizeof(app_backend_t));
     memset(backend, 0, sizeof(app_backend_t));
