@@ -112,9 +112,7 @@ void map_reserve(map_t* map, size_t capacity) {
         return;
     }
 
-    if (map->capacity > 0) {
-        memcpy(&temp, map, sizeof(map_t));
-    }
+    memcpy(&temp, map, sizeof(map_t));
 
     list_size = capacity * sizeof(void*);
     map->buckets = (map_node_t**)malloc(list_size);

@@ -7,6 +7,7 @@
 #include <curses.h>
 
 #include <malloc.h>
+#include <string.h>
 
 struct curses_backend_data {
     // todo: data
@@ -25,18 +26,19 @@ app_backend_t* app_backend_curses() {
 
     setlocale(LC_ALL, "");
 
-    data = (struct curses_backend_data*)malloc(sizeof(struct curses_backend_data));
+//    data = (struct curses_backend_data*)malloc(sizeof(struct curses_backend_data));
 
-    if (!initscr()) {
-        fprintf(stderr, "Failed to initialize ncurses!\n");
-
-        free(data);
-        return NULL;
-    }
-
+    /*
+    initscr();
     cbreak();
     noecho();
 
     intrflush(stdscr, FALSE);
     keypad(stdscr, TRUE);
+    */
+
+    backend = (app_backend_t*)malloc(sizeof(app_backend_t));
+    memset(backend, 0, sizeof(app_backend_t));
+
+    return backend;
 }

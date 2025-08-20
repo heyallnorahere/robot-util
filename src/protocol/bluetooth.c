@@ -19,7 +19,8 @@
 #define DEVICE_INTERFACE_NAME "org.bluez.Device1"
 
 struct bluetooth_device {
-    GDBusProxy* proxy;
+    GDBusProxy* device_proxy;
+    GDBusProxy* properties_proxy;
     GVariant* properties;
 
     char* address;
@@ -65,7 +66,8 @@ void bluetooth_device_free(bluetooth_t* bt, const char* path) {
     free(device->path);
 
     g_variant_unref(device->properties);
-    g_object_unref(device->proxy);
+    g_object_unref(device->device_proxy);
+    g_object_unref(device->properties_proxy);
 
     free(device);
 }
@@ -80,40 +82,65 @@ void bluetooth_device_alloc(bluetooth_t* bt, const char* path, GDBusInterfaceInf
 
     GVariant* arguments;
     GVariant* interface_name;
+    GVariant* retval;
 
     device = (bluetooth_device_t*)malloc(sizeof(bluetooth_device_t));
 
     error = NULL;
-    device->proxy =
+    device->device_proxy =
         g_dbus_proxy_new_sync(bt->connection, G_DBUS_PROXY_FLAGS_NONE, interface_info,
                               BLUEZ_BUS_NAME, path, DEVICE_INTERFACE_NAME, NULL, &error);
 
-    if (!device->proxy) {
+    if (!device->device_proxy) {
         fprintf(stderr, "Failed to create proxy for device: %s\n", error->message);
 
         free(device);
         return;
     }
 
-    interface_name = g_variant_new_string(DEVICE_INTERFACE_NAME);
-    arguments = g_variant_new_tuple(&interface_name, 1);
-
     error = NULL;
-    device->properties = g_dbus_connection_call_sync(bt->connection, BLUEZ_BUS_NAME, path,
-                                                     "org.freedesktop.DBus.Properties", "GetAll",
-                                                     NULL, NULL, 0, 0, NULL, &error);
+    device->properties_proxy =
+        g_dbus_proxy_new_sync(bt->connection, G_DBUS_PROXY_FLAGS_NONE, NULL, BLUEZ_BUS_NAME, path,
+                              "org.freedesktop.DBus.Properties", NULL, &error);
 
-    if (!device->properties) {
-        fprintf(stderr, "Failed to fetch properties for bluetooth device at DBus path %s: %s\n",
-                path, error->message);
+    if (!device->properties_proxy) {
+        fprintf(stderr, "Failed to create proxy for device properties: %s\n", error->message);
 
-        g_object_unref(device->proxy);
+        g_object_unref(device->device_proxy);
         free(device);
 
         return;
     }
 
-    property_value = g_variant_lookup_value(device->properties, "Address", NULL);
+    interface_name = g_variant_new_string(DEVICE_INTERFACE_NAME);
+    arguments = g_variant_new_tuple(&interface_name, 1);
+
+    g_variant_ref_sink(arguments);
+
+    error = NULL;
+    retval =
+        g_dbus_proxy_call_sync(device->properties_proxy, "GetAll", arguments, 0, -1, NULL, &error);
+
+    g_variant_unref(arguments);
+
+    if (!retval) {
+        fprintf(stderr, "Failed to fetch properties for bluetooth device at DBus path %s: %s\n",
+                path, error->message);
+
+        g_object_unref(device->device_proxy);
+        g_object_unref(device->properties_proxy);
+        free(device);
+
+        return;
+    }
+
+    g_variant_ref_sink(retval);
+    device->properties = g_variant_get_child_value(retval, 0);
+
+    g_variant_ref(device->properties);
+    g_variant_unref(retval);
+
+    property_value = g_variant_lookup_value(device->properties, "Address", G_VARIANT_TYPE_STRING);
     if (property_value) {
         string = g_variant_get_string(property_value, NULL);
         device->address = strdup(string);
@@ -124,7 +151,7 @@ void bluetooth_device_alloc(bluetooth_t* bt, const char* path, GDBusInterfaceInf
         device->address = NULL;
     }
 
-    property_value = g_variant_lookup_value(device->properties, "Name", NULL);
+    property_value = g_variant_lookup_value(device->properties, "Name", G_VARIANT_TYPE_STRING);
     if (property_value) {
         string = g_variant_get_string(property_value, NULL);
         device->name = strdup(string);
@@ -144,12 +171,18 @@ void bluetooth_device_alloc(bluetooth_t* bt, const char* path, GDBusInterfaceInf
 void bluetooth_interface_added(GDBusObjectManager* manager, GDBusObject* object,
                                GDBusInterface* interface, bluetooth_t* bt) {
     const gchar* object_path;
+    const gchar* interface_name;
     GDBusInterfaceInfo* info;
 
     object_path = g_dbus_object_get_object_path(object);
+    interface_name = g_dbus_proxy_get_interface_name(G_DBUS_PROXY(interface));
     info = g_dbus_interface_get_info(interface);
 
-    if (strcmp(info->name, DEVICE_INTERFACE_NAME) == 0) {
+    if (!interface_name) {
+        return;
+    }
+
+    if (strcmp(interface_name, DEVICE_INTERFACE_NAME) == 0) {
         bluetooth_device_alloc(bt, object_path, info);
     }
 
@@ -159,12 +192,16 @@ void bluetooth_interface_added(GDBusObjectManager* manager, GDBusObject* object,
 void bluetooth_interface_removed(GDBusObjectManager* manager, GDBusObject* object,
                                  GDBusInterface* interface, bluetooth_t* bt) {
     const gchar* object_path;
-    GDBusInterfaceInfo* info;
+    const gchar* interface_name;
 
     object_path = g_dbus_object_get_object_path(object);
-    info = g_dbus_interface_get_info(interface);
+    interface_name = g_dbus_proxy_get_interface_name(G_DBUS_PROXY(interface));
 
-    if (strcmp(info->name, DEVICE_INTERFACE_NAME) == 0) {
+    if (!interface_name) {
+        return;
+    }
+
+    if (strcmp(interface_name, DEVICE_INTERFACE_NAME) == 0) {
         bluetooth_device_free(bt, object_path);
     }
 
@@ -177,7 +214,7 @@ void bluetooth_object_added(GDBusObjectManager* manager, GDBusObject* object, bl
 
     interfaces = g_dbus_object_get_interfaces(object);
     for (current_node = interfaces; current_node != NULL; current_node = current_node->next) {
-        bluetooth_interface_added(manager, object, (GDBusInterface*)current_node->data, bt);
+        bluetooth_interface_added(manager, object, G_DBUS_INTERFACE(current_node->data), bt);
     }
 
     g_list_free_full(interfaces, g_object_unref);
@@ -189,7 +226,7 @@ void bluetooth_object_removed(GDBusObjectManager* manager, GDBusObject* object, 
 
     interfaces = g_dbus_object_get_interfaces(object);
     for (current_node = interfaces; current_node != NULL; current_node = current_node->next) {
-        bluetooth_interface_removed(manager, object, (GDBusInterface*)current_node->data, bt);
+        bluetooth_interface_removed(manager, object, G_DBUS_INTERFACE(current_node->data), bt);
     }
 
     g_list_free_full(interfaces, g_object_unref);
@@ -212,6 +249,7 @@ void bluetooth_scan_bus(bluetooth_t* bt) {
 int bluetooth_create_object_manager(bluetooth_t* bt) {
     GError* error;
 
+    error = NULL;
     bt->manager = g_dbus_object_manager_client_new_sync(
         bt->connection, G_DBUS_OBJECT_MANAGER_CLIENT_FLAGS_NONE, BLUEZ_BUS_NAME, "/", NULL, NULL,
         NULL, NULL, &error);
@@ -239,7 +277,7 @@ int bluetooth_create_object_manager(bluetooth_t* bt) {
 
 bluetooth_t* bluetooth_connect() {
     bluetooth_t* bt;
-    GError* error = NULL;
+    GError* error;
 
     if (!dbus_loop_ref()) {
         return NULL;
@@ -252,7 +290,9 @@ bluetooth_t* bluetooth_connect() {
     bt->connection = NULL;
     bt->manager = NULL;
 
+    error = NULL;
     bt->connection = g_bus_get_sync(G_BUS_TYPE_SYSTEM, NULL, &error);
+
     if (!bt->connection) {
         fprintf(stderr, "Error retrieving system bus: %s\n", error->message);
 
