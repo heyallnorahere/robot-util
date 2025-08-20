@@ -11,8 +11,8 @@ This project depends on the following libraries:
 - libcjson
 - libcurl
 - libgpiod 1.6.x - **libgpiod >= 2.0 has breaking changes**
-- libbluetooth
 - libglib2.0
+- libncurses
 
 `pkg-config` is also required for configuration.
 
