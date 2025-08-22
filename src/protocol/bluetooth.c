@@ -31,7 +31,7 @@ struct bluetooth_device {
     bluetooth_t* connection;
 };
 
-typedef struct bluetooth_adapter {
+struct bluetooth_adapter {
     GDBusProxy* adapter_proxy;
     GDBusProxy* properties_proxy;
 
@@ -39,7 +39,7 @@ typedef struct bluetooth_adapter {
     int initially_discovering;
 
     bluetooth_t* connection;
-} bluetooth_adapter_t;
+};
 
 struct bluetooth {
     GDBusConnection* connection;
@@ -543,6 +543,27 @@ char* bluetooth_device_get_address(bluetooth_device_t* device) {
     return address;
 }
 
+bluetooth_adapter_t* bluetooth_device_get_adapter(bluetooth_device_t* device) {
+    GVariant* value;
+    char* path;
+    void* adapter;
+
+    value = bluetooth_get_property(device->properties_proxy, DEVICE_INTERFACE_NAME, "Adapter");
+    if (value) {
+        path = strdup(g_variant_get_string(value, NULL));
+        g_variant_unref(value);
+    } else {
+        return NULL;
+    }
+
+    if (!map_get(device->connection->adapters, path, &adapter)) {
+        adapter = NULL;
+    }
+
+    free(path);
+    return (bluetooth_adapter_t*)adapter;
+}
+
 int bluetooth_device_is_paired(bluetooth_device_t* device) {
     GVariant* value;
     int paired;
@@ -556,6 +577,56 @@ int bluetooth_device_is_paired(bluetooth_device_t* device) {
     }
 
     return paired;
+}
+
+int bluetooth_device_pair(bluetooth_device_t* device) {
+    GVariant* retval;
+    GError* error;
+
+    error = NULL;
+    retval = g_dbus_proxy_call_sync(device->device_proxy, "Pair", NULL, G_DBUS_CALL_FLAGS_NONE,
+                                    INT_MAX, NULL, &error);
+
+    if (!retval) {
+        fprintf(stderr, "Failed to pair device at path %s: %s\n", device->path, error->message);
+        return 0;
+    } else {
+        g_variant_unref(retval);
+        return 1;
+    }
+}
+
+int bluetooth_device_remove(bluetooth_device_t* device) {
+    bluetooth_adapter_t* adapter;
+
+    GVariant* arguments;
+    GVariant* path;
+
+    GVariant* retval;
+    GError* error;
+
+    adapter = bluetooth_device_get_adapter(device);
+    if (!adapter) {
+        fprintf(stderr, "Failed to retrieve adapter for device %s\n", device->path);
+        return 0;
+    }
+
+    path = g_variant_new_object_path(device->path);
+    arguments = g_variant_new_tuple(&path, 1);
+
+    error = NULL;
+    retval = g_dbus_proxy_call_sync(adapter->adapter_proxy, "RemoveDevice", arguments,
+                                    G_DBUS_CALL_FLAGS_NONE, INT_MAX, NULL, &error);
+
+    if (!retval) {
+        fprintf(stderr, "Failed to remove device %s from adapter %s: %s\n", device->path,
+                adapter->path, error->message);
+
+        return 0;
+    } else {
+        g_variant_unref(retval);
+        return 1;
+    }
 }
 
 bluetooth_agent_t* bluetooth_agent_create(bluetooth_t* connection, const char* path) {

@@ -212,7 +212,7 @@ int map_insert_with_hash(map_t* map, size_t hash, void* key, void* value, int ch
 int map_insert(map_t* map, void* key, void* value) {
     size_t hash;
 
-    hash = map_hash_key(map, value);
+    hash = map_hash_key(map, key);
     return map_insert_with_hash(map, hash, key, value, 1);
 }
 

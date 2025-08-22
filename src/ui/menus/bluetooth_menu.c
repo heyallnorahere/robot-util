@@ -44,12 +44,18 @@ void bluetooth_menu_refresh(void* user_data, void* item_data) {
 
 void bluetooth_menu_select_device(void* user_data, void* item_data) {
     bluetooth_device_t* device;
-    const char* device_name;
+    int paired;
 
     device = (bluetooth_device_t*)item_data;
-    device_name = bluetooth_device_get_name(device);
+    paired = bluetooth_device_is_paired(device);
 
-    // todo: something!
+    if (!paired) {
+        bluetooth_device_pair(device);
+    } else {
+        bluetooth_device_remove(device);
+    }
+
+    bluetooth_menu_refresh(user_data, NULL);
 }
 
 void bluetooth_menu_back(void* user_data, void* item_data) {
