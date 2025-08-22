@@ -339,3 +339,7 @@ void app_select(app_t* app) {
 
     menu_select(top);
 }
+
+void app_get_screen_size(app_t* app, uint32_t* width, uint32_t* height) {
+    app->backend->backend_get_screen_size(app->backend->data, width, height);
+}

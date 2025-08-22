@@ -16,11 +16,15 @@ list_node_t* list_begin(list_t* list);
 // retrieves the last element of the list
 list_node_t* list_end(list_t* list);
 
-// inserts a node into the linked list. if previous is null, will insert it at the beginning
+// inserts a node into the linked list. if previous is null, will insert it at the beginning. does
+// not copy any memory
 list_node_t* list_insert(list_t* list, list_node_t* previous, void* value);
 
-// removes and frees the node from the list
+// removes and frees the node from the list. does not free memory which its value points to
 void list_remove(list_t* list, list_node_t* node);
+
+// clears list. does not free memory which its values point to
+void list_clear(list_t* list);
 
 // retrieves the next node after the current one
 list_node_t* list_node_next(list_node_t* node);
@@ -31,7 +35,7 @@ list_node_t* list_node_previous(list_node_t* node);
 // retrieves the value of a node
 void* list_node_get(list_node_t* node);
 
-// sets the value of a node
+// sets the value of a node. does not copy any memory
 void list_node_set(list_node_t* node, void* value);
 
 #endif

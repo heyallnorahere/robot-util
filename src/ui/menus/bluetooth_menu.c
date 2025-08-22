@@ -8,6 +8,7 @@
 #include <stdio.h>
 
 #include <malloc.h>
+#include <string.h>
 
 struct bluetooth_menu {
     bluetooth_t* bt;
@@ -72,7 +73,12 @@ menu_t* menus_bluetooth(bluetooth_t* bt, app_t* app) {
 
     uint32_t index;
     bluetooth_device_t* device;
-    const char* device_name;
+    char* device_name;
+    int device_paired;
+
+    uint32_t screen_width;
+    size_t name_buffer_size;
+    char* name_buffer;
 
     data = (struct bluetooth_menu*)malloc(sizeof(struct bluetooth_menu));
     data->bt = bt;
@@ -83,14 +89,26 @@ menu_t* menus_bluetooth(bluetooth_t* bt, app_t* app) {
     menu_set_user_data(menu, data, bluetooth_menu_free);
 
     menu_add(menu, "Refresh", bluetooth_menu_refresh, NULL, NULL);
+
+    app_get_screen_size(app, &screen_width, NULL);
+    name_buffer_size = (screen_width + 1) * sizeof(char);
+    name_buffer = (char*)malloc(name_buffer_size);
+
     for (index = 0; index < data->device_count; index++) {
         device = data->devices[index];
         device_name = bluetooth_device_get_name(device);
+        device_paired = bluetooth_device_is_paired(device);
 
         if (device_name) {
-            menu_add(menu, device_name, bluetooth_menu_select_device, device, NULL);
+            memset(name_buffer, 0, name_buffer_size);
+            snprintf(name_buffer, screen_width + 1, "%c%s", device_paired ? '*' : ' ', device_name);
+            free(device_name);
+
+            menu_add(menu, name_buffer, bluetooth_menu_select_device, device, NULL);
         }
     }
+
+    free(name_buffer);
 
     menu_add(menu, "Back", bluetooth_menu_back, NULL, NULL);
 

@@ -24,8 +24,8 @@ typedef struct app_backend {
     // string laid out in sequence. the end of the data is denoted as an extra NUL character.
     void (*backend_render)(void* data, app_t* app, const char* render_data);
 
-    // can only be null if backend_render is null. returns the size of the screen in characters via
-    // width and height pointers. width and height can both be null, but not at the same time.
+    // cannot be null. returns the size of the screen in characters via width and height pointers.
+    // width and height can both be null.
     void (*backend_get_screen_size)(void* data, uint32_t* width, uint32_t* height);
 
     // can be null. return 1 if cursor_character was set
@@ -61,5 +61,8 @@ void app_move_cursor(app_t* app, int32_t increment);
 
 // select the hovered menu item
 void app_select(app_t* app);
+
+// get the logical size of the screen in characters
+void app_get_screen_size(app_t* app, uint32_t* width, uint32_t* height);
 
 #endif

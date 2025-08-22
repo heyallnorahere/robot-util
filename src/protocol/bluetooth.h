@@ -12,8 +12,10 @@ void bluetooth_disconnect(bluetooth_t* bt);
 
 bluetooth_device_t** bluetooth_iterate_devices(bluetooth_t* bt, uint32_t* count);
 
-const char* bluetooth_device_get_name(bluetooth_device_t* device);
-const char* bluetooth_device_get_address(bluetooth_device_t* device);
+char* bluetooth_device_get_name(bluetooth_device_t* device);
+char* bluetooth_device_get_address(bluetooth_device_t* device);
+
+int bluetooth_device_is_paired(bluetooth_device_t* device);
 
 bluetooth_agent_t* bluetooth_agent_create(bluetooth_t* connection, const char* path);
 void bluetooth_agent_free(bluetooth_agent_t* agent);

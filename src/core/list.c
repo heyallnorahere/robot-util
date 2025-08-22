@@ -71,7 +71,7 @@ list_node_t* list_insert(list_t* list, list_node_t* previous, void* value) {
     return node;
 }
 
-void list_remove(list_t *list, list_node_t *node) {
+void list_remove(list_t* list, list_node_t* node) {
     if (!node) {
         return;
     }
@@ -91,6 +91,18 @@ void list_remove(list_t *list, list_node_t *node) {
     }
 
     free(node);
+}
+
+void list_clear(list_t* list) {
+    list_node_t* current;
+    list_node_t* next;
+
+    for (current = list->first; current != NULL; current = next) {
+        next = current->next;
+        free(current);
+    }
+
+    list->first = list->last = NULL;
 }
 
 list_node_t* list_node_next(list_node_t* node) { return node->next; }
